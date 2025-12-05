@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Smart Campus Energy Dashboard",
+    "category": "IoT",
+    "description": "Building a live dashboard to track campus energy usage.",
+    "team_size": 5
+  },
+  {
+    "title": "AI Study Buddy",
+    "category": "AI",
+    "description": "Lightweight tutor bot that answers course questions.",
+    "team_size": 4
+  }
+]

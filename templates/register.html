@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="tag">Mentor Registration</p>
+    <h2>Share your expertise with MMU students.</h2>
+    <p class="lede">Quick, no-login form to start mentoring.</p>
+  </div>
+</section>
+
+<section class="form-shell">
+  <form id="registerForm" class="card form-card">
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" name="name" required>
+    </div>
+    <div class="form-group">
+      <label>Field</label>
+      <input type="text" name="field" placeholder="AI, Robotics, Physics" required>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description" rows="3" required placeholder="How you help students..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Research area</label>
+      <input type="text" name="research_area" placeholder="Optional focus area">
+    </div>
+    <button type="submit" class="cta-button primary full">Submit Mentor Profile</button>
+    <p class="form-status" id="registerStatus"></p>
+  </form>
+
+  <div class="card">
+    <h3>New Mentor Preview</h3>
+    <div id="newMentorPreview" class="card-list"></div>
+  </div>
+</section>
+{% endblock %}

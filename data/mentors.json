@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Dr. Aisha Rahman",
+    "field": "Artificial Intelligence",
+    "description": "Focus on ethical AI and applied machine learning projects.",
+    "research_area": "AI Ethics"
+  },
+  {
+    "name": "Engr. Kelvin Lim",
+    "field": "Robotics",
+    "description": "Guides students on robotics competitions and ROS basics.",
+    "research_area": "Autonomous Systems"
+  }
+]

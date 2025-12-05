@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MMU STEMLink Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <div class="logo">MMU</div>
+      <div>
+        <p class="eyebrow">STEMLink Portal</p>
+        <h1>STEM Mentorship and Collaboration</h1>
+      </div>
+    </div>
+    <div class="header-chip">No logins • Prototype ready</div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>MMU STEMLink Portal</strong> — Connecting students with mentors and teams.
+    </div>
+    <div class="footer-links">
+      <span>Built for MMU STEM community</span>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
