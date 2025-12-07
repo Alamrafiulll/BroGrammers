@@ -1,240 +1,132 @@
 {% extends "base.html" %}
 {% block content %}
-<div id="loadingScreen" class="loading-screen">
-  <div class="loader-logo">MMU</div>
-  <p>Loading STEMLink...</p>
-  <div class="loader-bar"></div>
-</div>
 
-<aside class="pill-nav" aria-label="Section navigation">
-  <a href="#home" data-target="home">Home</a>
-  <a href="#stories" data-target="stories">Success Stories</a>
-  <a href="#mentorship" data-target="mentorship">Mentorship</a>
-  <a href="#projects" data-target="projects">Project Teams</a>
-  <a href="#join" data-target="join">Join Us</a>
-</aside>
-
-<div class="bg-circles" aria-hidden="true">
-  <span></span><span></span><span></span><span></span><span></span>
-</div>
-
-<section id="home" class="hero full-panel" data-section>
+<section id="home" class="hero full-panel">
   <div class="hero-bg layer"></div>
   <div class="hero-grid">
+    <!-- LEFT: Overview + live stats -->
     <div class="hero-copy">
-      <div class="pill">MMU | STEMLink | Futuristic</div>
-      <h2 class="typewriter" id="typewriter">Welcome to MMU STEMLink Portal</h2>
-      <p class="lede">Connecting students, mentors, and innovation across STEM with a slick, all-in-one scroll.</p>
-      <div class="hero-actions">
-        <a class="cta-button primary glow" href="#mentorship">Find a Mentor</a>
-        <a class="cta-button outline" href="#projects">Join a Team</a>
-        <a class="cta-button code" href="{{ url_for('register_page') }}">Become a Mentor</a>
+      <div class="pill">Multimedia University • Cyberjaya</div>
+      <h2 class="typewriter" id="typewriter">Engineering & STEM at MMU</h2>
+      <p class="lede">
+        A future-focused campus where STEM projects, innovation and real-world impact
+        are built by students and mentors together.
+      </p>
+
+      <div class="stats" style="margin-top: 14px;">
+        <div class="stat-card glass">
+          <p class="label">Registered mentors</p>
+          <h3>{{ mentor_count }}</h3>
+          <span class="muted">Live from STEM portal</span>
+        </div>
+        <div class="stat-card glass">
+          <p class="label">Active projects</p>
+          <h3>{{ project_count }}</h3>
+          <span class="muted">Student-led initiatives</span>
+        </div>
       </div>
-      <div class="stats">
-        <div class="stat-card glass">
-          <p class="label">Mentors</p>
-          <h3 id="statMentors">-</h3>
-          <span class="muted">Updated live</span>
-        </div>
-        <div class="stat-card glass">
-          <p class="label">Projects</p>
-          <h3 id="statProjects">-</h3>
-          <span class="muted">Active squads</span>
-        </div>
+
+      <div class="hero-actions" style="margin-top: 18px;">
+        <a class="cta-button primary glow" href="#faculties">Explore Faculties</a>
+        <a class="cta-button outline" href="/stem">Go to STEM Portal</a>
+        <a class="cta-button outline" href="/contact">Contact Us</a>
       </div>
     </div>
+
+    <!-- RIGHT: University picture -->
     <div class="hero-visual">
-      <div class="mascot-orb">
-        <img src="{{ url_for('static', filename='img/mmu-ebee.png') }}" alt="MMU Ebee mascot" class="mascot-img">
+      <div class="mascot-orb" style="border-radius: 24px;">
+        <img src="{{ url_for('static', filename='img/mmu-campus.jpg') }}"
+             alt="MMU Campus" class="mascot-img">
       </div>
       <div class="floating-dots"></div>
-      <div class="scroll-indicator">Scroll</div>
     </div>
   </div>
 </section>
 
-<section id="stories" class="section stories" data-section>
+<!-- Vision & Mission -->
+<section id="vision" class="section">
   <div class="section-heading">
-    <p class="tag">Success Stories</p>
-    <h2>Meet the Alumni Shaping the Future</h2>
-    <p class="lede">Spotlighting the achievements and journeys of our global MMU community.</p>
+    <p class="tag">Vision & Mission</p>
+    <h2>Shaping future-ready engineers and innovators</h2>
+    <p class="lede">
+      MMU aims to nurture graduates who are not only technically strong, but also creative,
+      ethical, and capable of leading technology-driven change in Malaysia and beyond.
+    </p>
   </div>
-  <div class="stories-wrap">
-    <div class="stories-track" id="storiesTrack"></div>
+  <div class="project-grid">
+    <article class="project-card tilt-card">
+      <h4>Vision</h4>
+      <p class="mentor-meta">Future-ready, industry-driven</p>
+      <p>
+        To be a leading private university that drives innovation, digital transformation,
+        and knowledge creation in engineering and technology.
+      </p>
+    </article>
+    <article class="project-card tilt-card">
+      <h4>Mission</h4>
+      <p class="mentor-meta">People, impact, community</p>
+      <p>
+        To produce competent professionals and entrepreneurs through high-quality education,
+        impactful research, and strong industry collaboration.
+      </p>
+    </article>
   </div>
 </section>
 
-<section id="mentorship" class="section mentorship" data-section>
+<!-- MMU History -->
+<section id="history" class="section">
   <div class="section-heading">
-    <p class="tag">Find a Mentor</p>
-    <h2>Meet the Mentors Behind the Innovation</h2>
-    <p class="lede">Connect with industry leaders ready to guide your next breakthrough.</p>
-  </div>
-  <div id="mentorStack" class="mentor-stack"></div>
-</section>
-
-<section id="projects" class="section projects" data-section>
-  <div class="section-heading">
-    <p class="tag">Join a Project Team</p>
-    <h2>Build Something Amazing Together</h2>
-    <p class="lede">Join a project team and turn ideas into real prototypes.</p>
-  </div>
-  <div id="projectGrid" class="project-grid"></div>
-  <div class="project-cta">
-    <div class="project-cta-card glass">
-      <div>
-        <p class="tag">Start Something</p>
-        <h3>Launch your own collaboration</h3>
-        <p class="lede">Propose a new project, find teammates, and get mentor feedback fast.</p>
-      </div>
-      <a class="cta-button primary glow" href="#join">Create your project</a>
-    </div>
-  </div>
-</section>
-
-<section id="join" class="section join" data-section>
-  <div class="section-heading">
-    <p class="tag">Join the MMU STEM Community</p>
-    <h2>One call-to-action to start</h2>
-    <p class="lede">Tell us who you are and we will route you to a mentor or project lead.</p>
+    <p class="tag">MMU History</p>
+    <h2>From Malaysia’s first private university to a tech hub</h2>
+    <p class="lede">
+      Founded in 1996, MMU was Malaysia’s first private university, growing into a
+      hub for ICT, engineering and digital creativity with campuses in Cyberjaya and Melaka.
+    </p>
   </div>
   <div class="join-card glass">
-    <form id="joinForm" class="join-form">
-      <div class="form-group">
-        <label for="joinName">Full Name</label>
-        <input id="joinName" name="student_name" type="text" required>
-      </div>
-      <div class="form-group">
-        <label for="joinEmail">Email</label>
-        <input id="joinEmail" name="email" type="email" required>
-      </div>
-      <div class="form-group">
-        <label for="joinRole">Role</label>
-        <select id="joinRole" name="role" required>
-          <option value="">Select</option>
-          <option value="Student">Student</option>
-          <option value="Mentor">Mentor</option>
-          <option value="Alumni">Alumni</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="joinFaculty">Faculty / School</label>
-        <select id="joinFaculty" name="faculty" required>
-          <option value="">Select</option>
-          <option value="Engineering">Engineering</option>
-          <option value="Computing & Informatics">Computing & Informatics</option>
-          <option value="Business & Finance">Business & Finance</option>
-          <option value="Applied Sciences">Applied Sciences</option>
-          <option value="Creative Media">Creative Media</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="joinSkills">Primary skill set</label>
-        <select id="joinSkills" name="skills" required>
-          <option value="">Select</option>
-          <option value="AI / ML">AI / ML</option>
-          <option value="Software Engineering">Software Engineering</option>
-          <option value="Data Science / Analytics">Data Science / Analytics</option>
-          <option value="Robotics / IoT">Robotics / IoT</option>
-          <option value="Cybersecurity">Cybersecurity</option>
-          <option value="Hardware / Embedded">Hardware / Embedded</option>
-          <option value="Design / UX">Design / UX</option>
-          <option value="Business / PM">Business / PM</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="joinAvailability">Availability (hrs/week)</label>
-        <input id="joinAvailability" name="availability" type="number" min="1" max="60" placeholder="e.g., 4">
-      </div>
-      <div class="form-group">
-        <label for="joinContact">Contact link / handle</label>
-        <input id="joinContact" name="contact" type="text" placeholder="LinkedIn, GitHub, Telegram, etc.">
-      </div>
-      <div class="form-group">
-        <label for="joinMessage">Message</label>
-        <textarea id="joinMessage" name="message" rows="3" placeholder="What do you want to build?" required></textarea>
-      </div>
-      <button type="submit" class="cta-button primary glow full">Submit</button>
-      <p class="form-status" id="joinStatus"></p>
-    </form>
+    <p>
+      Over the decades, MMU has supported thousands of STEM graduates, many of whom now lead
+      teams in multinational companies, start-ups, and research labs. The Engineering and
+      Technology community continues this legacy through student-led projects, competitions,
+      and industry-linked capstones.
+    </p>
   </div>
 </section>
 
-<footer class="site-footer">
-  <div class="footer-left">
-    <div class="logo">MMU</div>
-    <div>
-      <strong>MMU STEMLink Portal</strong>
-      <p class="muted">(c) 2025 MMU Engineering Society. All Rights Reserved.</p>
-    </div>
+<!-- Faculties & Projects -->
+<section id="faculties" class="section">
+  <div class="section-heading">
+    <p class="tag">Faculties & Projects</p>
+    <h2>Where do our STEM projects live?</h2>
+    <p class="lede">
+      Scroll through faculties to see example projects and which school champions which theme.
+      Use this as a gateway before diving into the STEM portal.
+    </p>
   </div>
-  <div class="footer-links">
-    <a href="mailto:hello@mmu.edu" aria-label="Email MMU">Email</a>
-    <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
-  </div>
-</footer>
 
-<div id="mentorModal" class="modal hidden" aria-hidden="true" role="dialog">
-  <div class="modal-content glass">
-    <button class="close-btn" data-close-modal aria-label="Close">x</button>
-    <h3>Request Mentorship</h3>
-    <form id="mentorForm">
-      <div class="form-group">
-        <label>Mentor</label>
-        <input type="text" name="mentor_name" id="mentorNameField" readonly>
-      </div>
-      <div class="form-group">
-        <label>Student name</label>
-        <input type="text" name="student_name" required>
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" name="email" required>
-      </div>
-      <div class="form-group">
-        <label>Project or research interest</label>
-        <input type="text" name="interest" required>
-      </div>
-      <div class="form-group">
-        <label>Message</label>
-        <textarea name="message" rows="3" placeholder="What do you hope to achieve?"></textarea>
-      </div>
-      <button type="submit" class="cta-button primary glow full">Send Request</button>
-      <p class="form-status" id="mentorStatus"></p>
-    </form>
-  </div>
-</div>
+  <div class="project-grid">
+    <article class="project-card tilt-card" id="fet">
+      <h4>Faculty of Engineering & Technology (FET)</h4>
+      <p class="mentor-meta">Robotics • IoT • Power Systems</p>
+      <p>Projects: Smart Campus Energy Dashboard, Autonomous Delivery Robot, Green Power Analytics.</p>
+      <p class="mentor-meta">Leads: hardware, embedded, smart infrastructure.</p>
+    </article>
 
-<div id="projectModal" class="modal hidden" aria-hidden="true" role="dialog">
-  <div class="modal-content glass">
-    <button class="close-btn" data-close-modal aria-label="Close">x</button>
-    <h3>Join Team</h3>
-    <form id="projectForm">
-      <div class="form-group">
-        <label>Project</label>
-        <input type="text" name="project_title" id="projectTitleField" readonly>
-      </div>
-      <div class="form-group">
-        <label>Student name</label>
-        <input type="text" name="student_name" required>
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" name="email" required>
-      </div>
-      <div class="form-group">
-        <label>Skills</label>
-        <input type="text" name="skills" required>
-      </div>
-      <div class="form-group">
-        <label>Short intro</label>
-        <textarea name="intro" rows="3" placeholder="What will you bring to the team?"></textarea>
-      </div>
-      <button type="submit" class="cta-button primary glow full">Submit</button>
-      <p class="form-status" id="projectStatus"></p>
-    </form>
+    <article class="project-card tilt-card" id="fist">
+      <h4>Faculty of Information Science & Technology (FIST)</h4>
+      <p class="mentor-meta">AI • Data • Software</p>
+      <p>Projects: AI Study Buddy, Learning Analytics Dashboard, ML-powered Lab Scheduler.</p>
+      <p class="mentor-meta">Leads: AI, software engineering, cloud platforms.</p>
+    </article>
+
+    <article class="project-card tilt-card" id="fcm">
+      <h4>Faculty of Creative Multimedia (FCM)</h4>
+      <p class="mentor-meta">XR • Visualisation • UI/UX</p>
+      <p>Projects: VR Physics Lab, Interactive Robotics Showcase, STEM Visual Storytelling.</p>
+      <p class="mentor-meta">Leads: design, visual storytelling, human-computer interaction.</p>
+    </article>
   </div>
-</div>
+</section>
+
 {% endblock %}
