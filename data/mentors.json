@@ -3,12 +3,14 @@
     "name": "Dr. Aisha Rahman",
     "field": "Artificial Intelligence",
     "description": "Focus on ethical AI and applied machine learning projects.",
-    "research_area": "AI Ethics"
+    "research_area": "AI Ethics",
+    "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&h=240&q=80"
   },
   {
     "name": "Engr. Kelvin Lim",
     "field": "Robotics",
     "description": "Guides students on robotics competitions and ROS basics.",
-    "research_area": "Autonomous Systems"
+    "research_area": "Autonomous Systems",
+    "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80"
   }
 ]

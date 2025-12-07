@@ -25,12 +25,14 @@ def ensure_data_files() -> None:
                 "field": "Artificial Intelligence",
                 "description": "Focus on ethical AI and applied machine learning projects.",
                 "research_area": "AI Ethics",
+                "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&h=240&q=80",
             },
             {
                 "name": "Engr. Kelvin Lim",
                 "field": "Robotics",
                 "description": "Guides students on robotics competitions and ROS basics.",
                 "research_area": "Autonomous Systems",
+                "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80",
             },
         ]
         MENTORS_FILE.write_text(json.dumps(default_mentors, indent=2))
@@ -148,7 +150,11 @@ def create_app() -> Flask:
             "project_title": payload.get("project_title", "").strip(),
             "student_name": payload.get("student_name", "").strip(),
             "email": payload.get("email", "").strip(),
+            "role": payload.get("role", "").strip(),
+            "faculty": payload.get("faculty", "").strip(),
             "skills": payload.get("skills", "").strip(),
+            "availability": payload.get("availability", "").strip(),
+            "contact": payload.get("contact", "").strip(),
             "intro": payload.get("intro", "").strip(),
         }
         if not (entry["student_name"] and entry["email"]):

@@ -2,15 +2,15 @@
 {% block content %}
 <div id="loadingScreen" class="loading-screen">
   <div class="loader-logo">MMU</div>
-  <p>Loading STEMLink…</p>
+  <p>Loading STEMLink...</p>
   <div class="loader-bar"></div>
 </div>
 
 <aside class="pill-nav" aria-label="Section navigation">
   <a href="#home" data-target="home">Home</a>
+  <a href="#stories" data-target="stories">Success Stories</a>
   <a href="#mentorship" data-target="mentorship">Mentorship</a>
   <a href="#projects" data-target="projects">Project Teams</a>
-  <a href="#stories" data-target="stories">Success Stories</a>
   <a href="#join" data-target="join">Join Us</a>
 </aside>
 
@@ -22,12 +22,13 @@
   <div class="hero-bg layer"></div>
   <div class="hero-grid">
     <div class="hero-copy">
-      <div class="pill">MMU • STEMLink • Futuristic</div>
+      <div class="pill">MMU | STEMLink | Futuristic</div>
       <h2 class="typewriter" id="typewriter">Welcome to MMU STEMLink Portal</h2>
       <p class="lede">Connecting students, mentors, and innovation across STEM with a slick, all-in-one scroll.</p>
       <div class="hero-actions">
         <a class="cta-button primary glow" href="#mentorship">Find a Mentor</a>
         <a class="cta-button outline" href="#projects">Join a Team</a>
+        <a class="cta-button code" href="{{ url_for('register_page') }}">Become a Mentor</a>
       </div>
       <div class="stats">
         <div class="stat-card glass">
@@ -52,11 +53,22 @@
   </div>
 </section>
 
+<section id="stories" class="section stories" data-section>
+  <div class="section-heading">
+    <p class="tag">Success Stories</p>
+    <h2>Meet the Alumni Shaping the Future</h2>
+    <p class="lede">Spotlighting the achievements and journeys of our global MMU community.</p>
+  </div>
+  <div class="stories-wrap">
+    <div class="stories-track" id="storiesTrack"></div>
+  </div>
+</section>
+
 <section id="mentorship" class="section mentorship" data-section>
   <div class="section-heading">
     <p class="tag">Find a Mentor</p>
-    <h2>Immersive 3D mentor stack</h2>
-    <p class="lede">Tilt cards, neon glows, zero friction. Tap connect to open the pop-up form.</p>
+    <h2>Meet the Mentors Behind the Innovation</h2>
+    <p class="lede">Connect with industry leaders ready to guide your next breakthrough.</p>
   </div>
   <div id="mentorStack" class="mentor-stack"></div>
 </section>
@@ -64,22 +76,19 @@
 <section id="projects" class="section projects" data-section>
   <div class="section-heading">
     <p class="tag">Join a Project Team</p>
-    <h2>Glassmorphism project grid</h2>
-    <p class="lede">Pick a team, see the vibe, and tap join. Background parallax keeps it lively.</p>
+    <h2>Build Something Amazing Together</h2>
+    <p class="lede">Join a project team and turn ideas into real prototypes.</p>
   </div>
   <div id="projectGrid" class="project-grid"></div>
-</section>
-
-<section id="stories" class="section stories" data-section>
-  <div class="section-heading">
-    <p class="tag">Alumni Success Stories</p>
-    <h2>Horizontal zoom carousel</h2>
-    <p class="lede">Hover to zoom, arrows to slide. Neon frames celebrate MMU wins.</p>
-  </div>
-  <div class="stories-wrap">
-    <button class="story-nav prev" aria-label="Previous stories">←</button>
-    <div class="stories-track" id="storiesTrack"></div>
-    <button class="story-nav next" aria-label="Next stories">→</button>
+  <div class="project-cta">
+    <div class="project-cta-card glass">
+      <div>
+        <p class="tag">Start Something</p>
+        <h3>Launch your own collaboration</h3>
+        <p class="lede">Propose a new project, find teammates, and get mentor feedback fast.</p>
+      </div>
+      <a class="cta-button primary glow" href="#join">Create your project</a>
+    </div>
   </div>
 </section>
 
@@ -105,7 +114,43 @@
           <option value="">Select</option>
           <option value="Student">Student</option>
           <option value="Mentor">Mentor</option>
+          <option value="Alumni">Alumni</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="joinFaculty">Faculty / School</label>
+        <select id="joinFaculty" name="faculty" required>
+          <option value="">Select</option>
+          <option value="Engineering">Engineering</option>
+          <option value="Computing & Informatics">Computing & Informatics</option>
+          <option value="Business & Finance">Business & Finance</option>
+          <option value="Applied Sciences">Applied Sciences</option>
+          <option value="Creative Media">Creative Media</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="joinSkills">Primary skill set</label>
+        <select id="joinSkills" name="skills" required>
+          <option value="">Select</option>
+          <option value="AI / ML">AI / ML</option>
+          <option value="Software Engineering">Software Engineering</option>
+          <option value="Data Science / Analytics">Data Science / Analytics</option>
+          <option value="Robotics / IoT">Robotics / IoT</option>
+          <option value="Cybersecurity">Cybersecurity</option>
+          <option value="Hardware / Embedded">Hardware / Embedded</option>
+          <option value="Design / UX">Design / UX</option>
+          <option value="Business / PM">Business / PM</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="joinAvailability">Availability (hrs/week)</label>
+        <input id="joinAvailability" name="availability" type="number" min="1" max="60" placeholder="e.g., 4">
+      </div>
+      <div class="form-group">
+        <label for="joinContact">Contact link / handle</label>
+        <input id="joinContact" name="contact" type="text" placeholder="LinkedIn, GitHub, Telegram, etc.">
       </div>
       <div class="form-group">
         <label for="joinMessage">Message</label>
@@ -122,7 +167,7 @@
     <div class="logo">MMU</div>
     <div>
       <strong>MMU STEMLink Portal</strong>
-      <p class="muted">© 2025 MMU Engineering Society. All Rights Reserved.</p>
+      <p class="muted">(c) 2025 MMU Engineering Society. All Rights Reserved.</p>
     </div>
   </div>
   <div class="footer-links">
