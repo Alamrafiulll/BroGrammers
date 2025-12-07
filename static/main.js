@@ -1,12 +1,68 @@
 const storiesData = [
-  { name: "Aisha Rahman", degree: "B.Eng AI", achievement: "Built a campus AI study buddy adopted by 3 faculties.", img: "https://via.placeholder.com/120?text=AR" },
-  { name: "Kelvin Lim", degree: "MSc Robotics", achievement: "Led MMU robotics team to a regional win.", img: "https://via.placeholder.com/120?text=KL" },
-  { name: "Mei Tan", degree: "BSc Physics", achievement: "Published on sustainable energy grids with MMU Lab.", img: "https://via.placeholder.com/120?text=MT" },
-  { name: "Amir Hassan", degree: "B.Eng IoT", achievement: "Deployed a live smart campus dashboard prototype.", img: "https://via.placeholder.com/120?text=AH" }
+  {
+    name: "Aisha Rahman",
+    role: "AI Consultant",
+    degree: "B.Eng AI",
+    achievement: "Built an AI study buddy adopted by 3 faculties and reduced help-desk load by 22%.",
+    achievements: ["AI & Machine Learning", "Campus Automation", "Student Success"],
+    rating: "4.9",
+    impact: "18k students reached",
+    img: "https://via.placeholder.com/240?text=AR",
+  },
+  {
+    name: "Kelvin Lim",
+    role: "Robotics Engineer",
+    degree: "MSc Robotics",
+    achievement: "Led MMU robotics team to a regional win with an autonomous delivery bot.",
+    achievements: ["ROS / Navigation", "Hardware Lead", "Competition Winner"],
+    rating: "4.8",
+    impact: "6 awards",
+    img: "https://via.placeholder.com/240?text=KL",
+  },
+  {
+    name: "Mei Tan",
+    role: "Energy Systems Analyst",
+    degree: "BSc Physics",
+    achievement: "Published on sustainable energy grids with MMU Lab; piloted a microgrid twin.",
+    achievements: ["Energy Grids", "Data Modeling", "Sustainability"],
+    rating: "4.85",
+    impact: "2 journals",
+    img: "https://via.placeholder.com/240?text=MT",
+  },
+  {
+    name: "Amir Hassan",
+    role: "IoT Product Lead",
+    degree: "B.Eng IoT",
+    achievement: "Deployed a smart campus dashboard with live sensors across 5 buildings.",
+    achievements: ["IoT / Edge", "Product Strategy", "Smart Campus"],
+    rating: "4.92",
+    impact: "5 buildings live",
+    img: "https://via.placeholder.com/240?text=AH",
+  },
 ];
 
 const select = (q) => document.querySelector(q);
 const selectAll = (q) => Array.from(document.querySelectorAll(q));
+
+function mentorAvatar(mentor) {
+  const img = mentor.photo || mentor.image || mentor.img;
+  const initials = (mentor.name || "MM")
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  if (img) {
+    return `
+      <div class="mentor-photo has-photo">
+        <img src="${img}" alt="${mentor.name || "Mentor photo"}">
+      </div>`;
+  }
+  return `
+    <div class="mentor-photo">
+      <span>${initials}</span>
+    </div>`;
+}
 
 async function fetchJSON(url) {
   try {
@@ -52,15 +108,35 @@ function renderMentors(mentors) {
     card.className = "mentor-card tilt-card";
     card.style.transitionDelay = `${index * 70}ms`;
     card.innerHTML = `
-      <div class="mentor-top">
-        <div class="mentor-avatar">${(mentor.name || "M").slice(0, 2)}</div>
-        <div>
-          <h4>${mentor.name}</h4>
-          <p class="mentor-meta">${mentor.field || "STEM Mentor"} · ${mentor.research_area || "Research"}</p>
-        </div>
+      ${mentorAvatar(mentor)}
+      <div class="mentor-info">
+        <h4>${mentor.name || "STEM Mentor"}</h4>
+        <p class="mentor-meta">${mentor.field || "Mentor"} - ${mentor.research_area || "Research"}</p>
       </div>
-      <p>${mentor.description || "Ready to guide your project."}</p>
-      <button class="cta-button primary glow full" data-mentor="${mentor.name}">Connect Now</button>
+      <p class="mentor-desc">${mentor.description || "Ready to guide your project."}</p>
+      <button class="cta-button primary glow full mentor-cta" data-mentor="${mentor.name}">Connect Now</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderMentorGrid(mentors) {
+  const container = select("#mentorGrid");
+  if (!container) return;
+  container.classList.add("mentor-grid");
+  container.innerHTML = "";
+  mentors.forEach((mentor, index) => {
+    const card = document.createElement("article");
+    card.className = "mentor-card tilt-card";
+    card.style.transitionDelay = `${index * 80}ms`;
+    card.innerHTML = `
+      ${mentorAvatar(mentor)}
+      <div class="mentor-info">
+        <h4>${mentor.name || "STEM Mentor"}</h4>
+        <p class="mentor-meta">${mentor.field || "Mentor"} - ${mentor.research_area || "Research"}</p>
+      </div>
+      <p class="mentor-desc">${mentor.description || "Ready to guide your project."}</p>
+      <button class="cta-button primary glow full mentor-cta" data-mentor="${mentor.name}">Connect Now</button>
     `;
     container.appendChild(card);
   });
@@ -89,17 +165,60 @@ function renderStories() {
   const track = select("#storiesTrack");
   if (!track) return;
   track.innerHTML = "";
-  storiesData.forEach((story) => {
+  const loopData = [...storiesData, ...storiesData];
+  loopData.forEach((story) => {
     const card = document.createElement("div");
     card.className = "story-card";
+    const achievementsList = (story.achievements || [])
+      .map((item) => `<li>${item}</li>`)
+      .join("");
     card.innerHTML = `
-      <img src="${story.img}" alt="${story.name}">
-      <h4>${story.name}</h4>
-      <p class="mentor-meta">${story.degree}</p>
-      <p>${story.achievement}</p>
+      <div class="story-ribbon">Alumni</div>
+      <div class="story-top">
+        <div class="story-avatar">
+          <img src="${story.img}" alt="${story.name}">
+          <span class="story-badge">*</span>
+        </div>
+      </div>
+      <div class="story-info">
+        <h4>${story.name}</h4>
+        <p class="story-role">${story.role || story.degree}</p>
+        <p class="story-degree">${story.degree || ""}</p>
+      </div>
+      <p class="story-body">${story.achievement}</p>
+      <ul class="story-achievements">${achievementsList}</ul>
     `;
     track.appendChild(card);
   });
+}
+
+function playStoryAnimation() {
+  const track = select("#storiesTrack");
+  const cards = selectAll(".story-card");
+  if (!track || !cards.length) return;
+
+  cards.forEach((card) => card.classList.remove("pop"));
+
+  if (!("IntersectionObserver" in window)) {
+    cards.forEach((card, index) => setTimeout(() => card.classList.add("pop"), index * 100));
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries, obs) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          cards.forEach((card, index) => {
+            setTimeout(() => card.classList.add("pop"), index * 110);
+          });
+          obs.disconnect();
+        }
+      });
+    },
+    { threshold: 0.35 }
+  );
+
+  observer.observe(track);
 }
 
 function setupStoryNav() {
@@ -255,7 +374,11 @@ function handleJoinForm() {
       project_title: `Community (${formData.role || "Participant"})`,
       student_name: formData.student_name,
       email: formData.email,
-      skills: formData.role,
+      role: formData.role,
+      faculty: formData.faculty,
+      skills: formData.skills,
+      availability: formData.availability,
+      contact: formData.contact,
       intro: formData.message,
     };
     const res = await fetch("/api/join_project", {
@@ -293,6 +416,7 @@ async function init() {
   hideLoader();
   setupTypewriter();
   renderStories();
+  playStoryAnimation();
   setupStoryNav();
   smoothNavClicks();
   setupModals();
@@ -305,6 +429,7 @@ async function init() {
   const projects = await fetchJSON("/projects");
   updateStats(mentors, projects);
   renderMentors(mentors);
+  renderMentorGrid(mentors);
   renderProjects(projects);
   setupTilt();
   setupReveal();
