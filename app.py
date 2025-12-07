@@ -25,12 +25,14 @@ def ensure_data_files() -> None:
                 "field": "Artificial Intelligence",
                 "description": "Focus on ethical AI and applied machine learning projects.",
                 "research_area": "AI Ethics",
+                "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&h=240&q=80",
             },
             {
                 "name": "Engr. Kelvin Lim",
                 "field": "Robotics",
                 "description": "Guides students on robotics competitions and ROS basics.",
                 "research_area": "Autonomous Systems",
+                "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80",
             },
         ]
         MENTORS_FILE.write_text(json.dumps(default_mentors, indent=2))
@@ -76,10 +78,40 @@ def create_app() -> Flask:
     ensure_data_files()
     app = Flask(__name__)
 
+    # -----------------
+    # PAGE ROUTES
+    # -----------------
     @app.route("/")
     def home() -> str:
-        return render_template("index.html")
+        """
+        Main MMU page:
+        - Overview, vision/mission, history
+        - Live stats: mentors & projects (from JSON "database")
+        """
+        mentors = read_json(MENTORS_FILE)
+        projects = read_json(PROJECTS_FILE)
+        return render_template(
+            "index.html",
+            mentor_count=len(mentors),
+            project_count=len(projects),
+        )
 
+    @app.route("/stem")
+    def stem_page() -> str:
+        """
+        STEM portal page:
+        - Ebee image
+        - Find a mentor, Join a team, Become a mentor, Workshops
+        (we will move your existing STEM UI into stem.html)
+        """
+        return render_template("stem.html")
+
+    @app.route("/contact")
+    def contact_page() -> str:
+        """Contact page with picture and address."""
+        return render_template("contact.html")
+
+    # Optional: keep the old detailed pages if you still use them
     @app.route("/mentors/list")
     def mentors_page() -> str:
         return render_template("mentors.html")
@@ -92,7 +124,9 @@ def create_app() -> Flask:
     def register_page() -> str:
         return render_template("register.html")
 
-    # API routes
+    # -----------------
+    # API ROUTES
+    # -----------------
     @app.route("/mentors", methods=["GET"])
     def get_mentors() -> Any:
         mentors = read_json(MENTORS_FILE)
@@ -110,6 +144,7 @@ def create_app() -> Flask:
         field = payload.get("field", "").strip()
         description = payload.get("description", "").strip()
         research_area = payload.get("research_area", "").strip()
+        photo = payload.get("photo", "").strip()
 
         if not (name and field and description):
             return jsonify({"status": "error", "message": "Missing required mentor info."}), 400
@@ -119,6 +154,7 @@ def create_app() -> Flask:
             "field": field,
             "description": description,
             "research_area": research_area,
+            "photo": photo,
         }
         append_to_json(MENTORS_FILE, mentor_entry)
         return jsonify({"status": "success", "mentor": mentor_entry})
@@ -148,7 +184,11 @@ def create_app() -> Flask:
             "project_title": payload.get("project_title", "").strip(),
             "student_name": payload.get("student_name", "").strip(),
             "email": payload.get("email", "").strip(),
+            "role": payload.get("role", "").strip(),
+            "faculty": payload.get("faculty", "").strip(),
             "skills": payload.get("skills", "").strip(),
+            "availability": payload.get("availability", "").strip(),
+            "contact": payload.get("contact", "").strip(),
             "intro": payload.get("intro", "").strip(),
         }
         if not (entry["student_name"] and entry["email"]):
