@@ -371,7 +371,7 @@ function handleJoinForm() {
     const formData = Object.fromEntries(new FormData(form).entries());
     // Route into requests as a generic project request
     const payload = {
-      project_title: `Community (${formData.role || "Participant"})`,
+      project_title: `Community (${formData.role || "Participants"})`,
       student_name: formData.student_name,
       email: formData.email,
       role: formData.role,
