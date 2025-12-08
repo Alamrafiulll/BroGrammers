@@ -65,4 +65,76 @@
     {% endfor %}
   </div>
 </section>
+
+<section class="section">
+  <div class="section-heading">
+    <p class="tag">Your projects</p>
+    <h2>Create and manage</h2>
+  </div>
+
+  <div class="join-card glass" style="margin-bottom: 16px;">
+    <h4>Create a new project</h4>
+    <form method="post" action="{{ url_for('mentor_project_create') }}" class="join-form" style="gap: 8px;">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" required>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" name="category" placeholder="AI, Web, IoT...">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="2" placeholder="What is this project about?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Team size (max 5)</label>
+        <input type="number" name="team_size" min="1" max="5" placeholder="5">
+      </div>
+      <button class="cta-button primary" type="submit">Create project</button>
+    </form>
+  </div>
+
+  {% if projects %}
+  <div class="mentor-grid">
+    {% for project in projects %}
+    {% set counts = project_slots.get(project.id, {"accepted": 0}) %}
+    {% set accepted = counts["accepted"] %}
+    {% set capacity = project.team_size or 5 %}
+    {% set available = capacity - accepted %}
+    <article class="mentor-card tilt-card" style="opacity: 1;">
+      <div class="mentor-info">
+        <h4>{{ project.title }}</h4>
+        <p class="mentor-meta">{{ project.category or "Project" }}</p>
+      </div>
+      <p class="mentor-desc">{{ project.description }}</p>
+      <p class="mentor-meta">Slots: {{ accepted }} / {{ capacity }} {% if available <= 0 %}(Full){% endif %}</p>
+      <form method="post" action="{{ url_for('mentor_project_delete', project_id=project.id) }}" style="margin-top: 8px;">
+        <button class="cta-button outline" type="submit">Delete project</button>
+      </form>
+      <div class="mentor-meta" style="margin-top: 8px;">Team members</div>
+      {% set members = project_members.get(project.id) %}
+      {% if members %}
+        {% for member in members %}
+          <div class="card" style="padding: 8px; margin-top: 6px;">
+            <strong>{{ member.student_name }}</strong> <span class="mentor-meta">{{ member.email }}</span>
+            <p class="mentor-meta">{{ member.role or "Student" }} | {{ member.skills or "Skills N/A" }}</p>
+            <form method="post" action="{{ url_for('mentor_project_remove_member', project_id=project.id) }}" style="margin-top: 6px;">
+              <input type="hidden" name="request_id" value="{{ member.id }}">
+              <button class="cta-button outline" type="submit">Remove from team</button>
+            </form>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="muted">No accepted members yet.</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="join-card glass">
+      <p class="muted">No projects created yet. Start one above.</p>
+    </div>
+  {% endif %}
+</section>
 {% endblock %}

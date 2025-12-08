@@ -8,7 +8,9 @@ from typing import Any, Dict, List
 import os
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import text, func
+from sqlalchemy.exc import OperationalError
+import time
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -73,17 +75,24 @@ class Project(db.Model):
     category = db.Column(db.String(120), default="")
     description = db.Column(db.Text, default="")
     team_size = db.Column(db.Integer)
+    mentor_id = db.Column(db.Integer, db.ForeignKey("mentors.id"))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    mentor = db.relationship("Mentor", backref="projects")
+    requests = db.relationship("JoinRequest", back_populates="project", lazy="dynamic")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        base = {
             "id": self.id,
             "title": self.title,
             "category": self.category,
             "description": self.description,
             "team_size": self.team_size,
+            "mentor_id": self.mentor_id,
             "created_at": self.created_at.isoformat(),
         }
+        if self.mentor:
+            base["mentor_name"] = self.mentor.name
+        return base
 
 
 class JoinRequest(db.Model):
@@ -108,7 +117,7 @@ class JoinRequest(db.Model):
     message = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     mentor = db.relationship("Mentor", back_populates="requests")
-    project = db.relationship("Project")
+    project = db.relationship("Project", back_populates="requests")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -171,17 +180,75 @@ def seed_defaults() -> None:
         db.session.commit()
 
 
+def project_slot_summary() -> Dict[int, Dict[str, int]]:
+    """
+    Return mapping of project_id -> {"accepted": int}
+    Only counts accepted requests.
+    """
+    rows = db.session.execute(
+        text(
+            "SELECT project_id, COUNT(*) as c FROM requests "
+            "WHERE status = 'accepted' AND project_id IS NOT NULL GROUP BY project_id"
+        )
+    ).fetchall()
+    return {int(row[0]): {"accepted": int(row[1])} for row in rows if row[0] is not None}
+
+
+def project_capacity(project: Project) -> int:
+    """Return capacity for a project, defaulting to 5 if not set."""
+    try:
+        if project.team_size:
+            return int(project.team_size)
+    except Exception:
+        pass
+    return 5
+
+
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def student_requests(email: str) -> List[JoinRequest]:
+    return (
+        JoinRequest.query.filter(func.lower(JoinRequest.email) == normalize_email(email))
+        .order_by(JoinRequest.created_at.desc())
+        .all()
+    )
+
+
 def init_database(app: Flask) -> None:
     """Configure and initialize the SQLite database."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_FILE}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Give SQLite more room to wait for locks; helps when DB is briefly open elsewhere.
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"connect_args": {"timeout": 10}}
     db.init_app(app)
 
     with app.app_context():
-        db.create_all()
-        upgrade_schema()
-        seed_defaults()
+        # Soften locking by using WAL + busy timeout, with a short retry loop.
+        for attempt in range(3):
+            try:
+                db.session.execute(text("PRAGMA journal_mode=WAL"))
+                db.session.execute(text("PRAGMA busy_timeout = 5000"))
+                db.session.commit()
+                break
+            except OperationalError:
+                db.session.rollback()
+                time.sleep(1.0)
+        else:
+            raise
+        for attempt in range(3):
+            try:
+                db.create_all()
+                upgrade_schema()
+                seed_defaults()
+                break
+            except OperationalError:
+                db.session.rollback()
+                time.sleep(1.0)
+        else:
+            raise
 
 
 def add_column_if_missing(table: str, column: str, ddl: str) -> None:
@@ -199,6 +266,7 @@ def upgrade_schema() -> None:
     add_column_if_missing("requests", "status", "TEXT DEFAULT 'pending'")
     add_column_if_missing("requests", "mentor_id", "INTEGER")
     add_column_if_missing("requests", "project_id", "INTEGER")
+    add_column_if_missing("projects", "mentor_id", "INTEGER")
 
     # backfill null statuses to pending for older rows
     db.session.execute(text("UPDATE requests SET status = 'pending' WHERE status IS NULL"))
@@ -252,6 +320,44 @@ def create_app() -> Flask:
         """Contact page with picture and address."""
         return render_template("contact.html")
 
+    @app.route("/student", methods=["GET", "POST"])
+    def student_portal() -> Any:
+        student_email = session.get("student_email")
+        student_name = session.get("student_name", "")
+        status_message = None
+        if request.method == "POST":
+            student_email = normalize_email(request.form.get("email"))
+            student_name = request.form.get("student_name", "").strip()
+            if student_email:
+                session["student_email"] = student_email
+                if student_name:
+                    session["student_name"] = student_name
+            else:
+                status_message = "Email is required to view your activity."
+        requests_rows = student_requests(student_email) if student_email else []
+        if not student_name and requests_rows:
+            student_name = requests_rows[0].student_name or ""
+            session["student_name"] = student_name
+        pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
+        accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
+        mentors = Mentor.query.order_by(Mentor.name.asc()).all()
+        return render_template(
+            "student.html",
+            student_email=student_email,
+            student_name=student_name,
+            requests=requests_rows,
+            pending=pending,
+            accepted=accepted,
+            mentors=mentors,
+            status_message=status_message,
+        )
+
+    @app.route("/student/logout")
+    def student_logout() -> Any:
+        session.pop("student_email", None)
+        session.pop("student_name", None)
+        return redirect(url_for("student_portal"))
+
     # Optional: keep the old detailed pages if you still use them
     @app.route("/mentors/list")
     def mentors_page() -> str:
@@ -276,7 +382,23 @@ def create_app() -> Flask:
     @app.route("/projects", methods=["GET"])
     def get_projects() -> Any:
         projects = Project.query.order_by(Project.created_at.desc()).all()
-        return jsonify([project.to_dict() for project in projects])
+        slot_map = project_slot_summary()
+        response = []
+        for project in projects:
+            counts = slot_map.get(project.id, {"accepted": 0})
+            capacity = project_capacity(project)
+            available = max(capacity - counts["accepted"], 0)
+            record = project.to_dict()
+            record.update(
+                {
+                    "accepted": counts["accepted"],
+                    "capacity": capacity,
+                    "available": available,
+                    "is_full": available <= 0,
+                }
+            )
+            response.append(record)
+        return jsonify(response)
 
     @app.route("/api/add_mentor", methods=["POST"])
     def add_mentor() -> Any:
@@ -320,7 +442,7 @@ def create_app() -> Flask:
         mentor_name = payload.get("mentor_name", "").strip()
         mentor_id = payload.get("mentor_id")
         student_name = payload.get("student_name", "").strip()
-        email = payload.get("email", "").strip()
+        email = normalize_email(payload.get("email", ""))
         interest = payload.get("interest", "").strip()
         message = payload.get("message", "").strip()
 
@@ -360,17 +482,48 @@ def create_app() -> Flask:
     def join_project() -> Any:
         payload = request.get_json(force=True) or {}
         project_title = payload.get("project_title", "").strip()
+        project_id_raw = payload.get("project_id")
         student_name = payload.get("student_name", "").strip()
-        email = payload.get("email", "").strip()
+        email = normalize_email(payload.get("email", ""))
         role = payload.get("role", "").strip()
         faculty = payload.get("faculty", "").strip()
         skills = payload.get("skills", "").strip()
         availability = payload.get("availability", "").strip()
         contact = payload.get("contact", "").strip()
         intro = payload.get("intro", "").strip()
+        mentor_id_raw = payload.get("mentor_id")
+        mentor_name = payload.get("mentor_name", "").strip()
+        project_obj: Project | None = None
 
         if not (student_name and email):
             return jsonify({"status": "error", "message": "Student name and email required."}), 400
+
+        mentor_obj = None
+        if mentor_id_raw is not None and str(mentor_id_raw).strip() != "":
+            try:
+                mentor_id_val = int(mentor_id_raw)
+                mentor_obj = Mentor.query.filter_by(id=mentor_id_val).first()
+            except (TypeError, ValueError):
+                mentor_obj = None
+        elif mentor_name:
+            mentor_obj = Mentor.query.filter_by(name=mentor_name).first()
+
+        if mentor_id_raw and mentor_obj is None:
+            return jsonify({"status": "error", "message": "Selected mentor not found."}), 404
+
+        if project_id_raw is not None and str(project_id_raw).strip() != "":
+            try:
+                project_id_val = int(project_id_raw)
+                project_obj = Project.query.filter_by(id=project_id_val).first()
+            except (TypeError, ValueError):
+                project_obj = None
+            if project_obj is None:
+                return jsonify({"status": "error", "message": "Project not found."}), 404
+            slot_map = project_slot_summary()
+            accepted = slot_map.get(project_obj.id, {"accepted": 0})["accepted"]
+            capacity = project_capacity(project_obj)
+            if accepted >= capacity:
+                return jsonify({"status": "error", "message": "Project team is full."}), 400
 
         request_row = JoinRequest(
             request_type="project",
@@ -384,6 +537,9 @@ def create_app() -> Flask:
             contact=contact,
             intro=intro,
             message=payload.get("message", "").strip(),
+            mentor_id=mentor_obj.id if mentor_obj else None,
+            mentor_name=mentor_obj.name if mentor_obj else None,
+            project_id=project_obj.id if project_obj else None,
             status="pending",
         )
 
@@ -457,7 +613,8 @@ def create_app() -> Flask:
                 title=title,
                 category=req_row.role or "Student proposal",
                 description=description,
-                team_size=None,
+                team_size=5,
+                mentor_id=mentor.id,
             )
             try:
                 db.session.add(created_project)
@@ -466,6 +623,17 @@ def create_app() -> Flask:
             except Exception:
                 db.session.rollback()
                 return jsonify({"status": "error", "message": "Failed to create project entry."}), 500
+        elif action == "accepted" and req_row.project_id:
+            project_obj = Project.query.filter_by(id=req_row.project_id).first()
+            if project_obj is None:
+                return jsonify({"status": "error", "message": "Project not found."}), 404
+            capacity = project_capacity(project_obj)
+            accepted = project_slot_summary().get(project_obj.id, {"accepted": 0})["accepted"]
+            # include this request if it was already accepted? It was pending so count stays.
+            if accepted >= capacity:
+                return jsonify({"status": "error", "message": "Project is already full."}), 400
+            if project_obj.mentor_id is None:
+                project_obj.mentor_id = mentor.id
 
         try:
             db.session.commit()
@@ -490,13 +658,255 @@ def create_app() -> Flask:
             .order_by(JoinRequest.created_at.desc())
             .all()
         )
+        mentor_projects = Project.query.filter_by(mentor_id=mentor.id).all()
+        slot_map = project_slot_summary()
         return jsonify(
             {
                 "status": "success",
                 "mentor": mentor.to_dict(),
                 "requests": [req.to_dict() for req in requests_rows],
+                "projects": [
+                    dict(
+                        **proj.to_dict(),
+                        accepted=slot_map.get(proj.id, {"accepted": 0})["accepted"],
+                        capacity=project_capacity(proj),
+                        available=max(project_capacity(proj) - slot_map.get(proj.id, {"accepted": 0})["accepted"], 0),
+                    )
+                    for proj in mentor_projects
+                ],
             }
         )
+
+    @app.route("/api/mentor/projects", methods=["GET", "POST"])
+    def mentor_projects_api() -> Any:
+        if not session.get("mentor_id"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+
+        if request.method == "GET":
+            slot_map = project_slot_summary()
+            projects = Project.query.filter_by(mentor_id=mentor.id).order_by(Project.created_at.desc()).all()
+            response = []
+            for proj in projects:
+                accepted = slot_map.get(proj.id, {"accepted": 0})["accepted"]
+                capacity = project_capacity(proj)
+                available = max(capacity - accepted, 0)
+                members = (
+                    JoinRequest.query.filter(
+                        JoinRequest.project_id == proj.id, JoinRequest.status == "accepted"
+                    )
+                    .order_by(JoinRequest.created_at.asc())
+                    .all()
+                )
+                response.append(
+                    {
+                        **proj.to_dict(),
+                        "accepted": accepted,
+                        "capacity": capacity,
+                        "available": available,
+                        "members": [m.to_dict() for m in members],
+                    }
+                )
+            return jsonify({"status": "success", "projects": response})
+
+        payload = request.get_json(force=True) or {}
+        title = payload.get("title", "").strip()
+        category = payload.get("category", "").strip()
+        description = payload.get("description", "").strip()
+        team_size_raw = payload.get("team_size")
+        if not title:
+            return jsonify({"status": "error", "message": "Project title is required."}), 400
+        try:
+            team_size_val = int(team_size_raw) if team_size_raw not in (None, "") else 5
+            if team_size_val < 1 or team_size_val > 5:
+                raise ValueError
+        except (TypeError, ValueError):
+            team_size_val = 5
+
+        project = Project(
+            title=title,
+            category=category,
+            description=description or "Mentor-created project",
+            team_size=team_size_val,
+            mentor_id=mentor.id,
+        )
+        try:
+            db.session.add(project)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to create project."}), 500
+
+        return jsonify(
+            {
+                "status": "success",
+                "project": {
+                    **project.to_dict(),
+                    "accepted": 0,
+                    "capacity": team_size_val,
+                    "available": team_size_val,
+                },
+            }
+        )
+
+    @app.route("/api/mentor/projects/<int:project_id>/remove_member", methods=["POST"])
+    def mentor_remove_member(project_id: int) -> Any:
+        if not session.get("mentor_id"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        project = Project.query.filter_by(id=project_id, mentor_id=mentor.id).first()
+        if project is None:
+            return jsonify({"status": "error", "message": "Project not found."}), 404
+        payload = request.get_json(force=True) or {}
+        req_id = payload.get("request_id")
+        member = JoinRequest.query.filter_by(id=req_id, project_id=project.id).first()
+        if member is None:
+            return jsonify({"status": "error", "message": "Request not found for this project."}), 404
+        member.status = "removed"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to remove member."}), 500
+        return jsonify({"status": "success", "request": member.to_dict()})
+
+    @app.route("/api/mentor/projects/<int:project_id>/delete", methods=["POST"])
+    def mentor_delete_project(project_id: int) -> Any:
+        if not session.get("mentor_id"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        project = Project.query.filter_by(id=project_id, mentor_id=mentor.id).first()
+        if project is None:
+            return jsonify({"status": "error", "message": "Project not found."}), 404
+        try:
+            db.session.execute(
+                text(
+                    "UPDATE requests SET status = 'project_deleted', project_id = NULL WHERE project_id = :pid"
+                ),
+                {"pid": project.id},
+            )
+            db.session.delete(project)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to delete project."}), 500
+        return jsonify({"status": "success", "message": "Project removed."})
+
+    @app.route("/api/requests/withdraw", methods=["POST"])
+    def request_withdraw() -> Any:
+        payload = request.get_json(force=True) or {}
+        email = normalize_email(payload.get("email"))
+        project_title = (payload.get("project_title") or "").strip()
+        project_id_raw = payload.get("project_id")
+        if not email:
+            return jsonify({"status": "error", "message": "Email is required."}), 400
+        query = JoinRequest.query.filter(
+            JoinRequest.email == email, JoinRequest.status.in_(["pending", "accepted"])
+        )
+        if project_id_raw:
+            try:
+                pid = int(project_id_raw)
+                query = query.filter(JoinRequest.project_id == pid)
+            except (TypeError, ValueError):
+                pass
+        elif project_title:
+            query = query.filter(JoinRequest.project_title == project_title)
+        req_obj = query.order_by(JoinRequest.created_at.desc()).first()
+        if req_obj is None:
+            return jsonify({"status": "error", "message": "No matching request found."}), 404
+        req_obj.status = "withdrawn"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to withdraw request."}), 500
+        return jsonify({"status": "success", "request": req_obj.to_dict()})
+
+    @app.route("/api/student/login", methods=["POST"])
+    def student_login() -> Any:
+        payload = request.get_json(force=True) or {}
+        email = normalize_email(payload.get("email"))
+        student_name = payload.get("student_name", "").strip()
+        if not email:
+            return jsonify({"status": "error", "message": "Email is required."}), 400
+        session["student_email"] = email
+        if student_name:
+            session["student_name"] = student_name
+        requests_rows = student_requests(email)
+        if not student_name and requests_rows:
+            student_name = requests_rows[0].student_name or ""
+        pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
+        accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
+        return jsonify(
+            {
+                "status": "success",
+                "email": email,
+                "student_name": student_name,
+                "pending": pending,
+                "accepted": accepted,
+                "requests": [r.to_dict() for r in requests_rows],
+            }
+        )
+
+    @app.route("/api/student/requests", methods=["GET"])
+    def student_requests_api() -> Any:
+        email = session.get("student_email")
+        if not email:
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        requests_rows = student_requests(email)
+        student_name = session.get("student_name") or (requests_rows[0].student_name if requests_rows else "")
+        pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
+        accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
+        return jsonify(
+            {
+                "status": "success",
+                "email": email,
+                "student_name": student_name,
+                "pending": pending,
+                "accepted": accepted,
+                "requests": [r.to_dict() for r in requests_rows],
+            }
+        )
+
+    @app.route("/api/student/withdraw/<int:req_id>", methods=["POST"])
+    def student_withdraw_request(req_id: int) -> Any:
+        email = session.get("student_email")
+        if not email:
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        req_obj = JoinRequest.query.filter(
+            JoinRequest.id == req_id, func.lower(JoinRequest.email) == email
+        ).first()
+        if req_obj is None:
+            return jsonify({"status": "error", "message": "Request not found."}), 404
+        req_obj.status = "withdrawn"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to withdraw request."}), 500
+        return jsonify({"status": "success", "request": req_obj.to_dict()})
+
+    @app.route("/student/withdraw/<int:req_id>", methods=["POST"])
+    def student_withdraw_request_form(req_id: int) -> Any:
+        email = session.get("student_email")
+        if not email:
+            return redirect(url_for("student_portal"))
+        req_obj = JoinRequest.query.filter(
+            JoinRequest.id == req_id, func.lower(JoinRequest.email) == email
+        ).first()
+        if req_obj:
+            req_obj.status = "withdrawn"
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        return redirect(url_for("student_portal"))
 
     @app.route("/mentor/dashboard")
     def mentor_dashboard() -> Any:
@@ -511,16 +921,107 @@ def create_app() -> Flask:
             .order_by(JoinRequest.created_at.desc())
             .all()
         )
+        mentor_projects = (
+            Project.query.filter_by(mentor_id=mentor.id)
+            .order_by(Project.created_at.desc())
+            .all()
+        )
+        slot_map = project_slot_summary()
+        project_members = {
+            p.id: JoinRequest.query.filter(
+                JoinRequest.project_id == p.id, JoinRequest.status == "accepted"
+            ).all()
+            for p in mentor_projects
+        }
         return render_template(
             "mentor_dashboard.html",
             mentor=mentor,
             requests=requests_rows,
+            projects=mentor_projects,
+            project_members=project_members,
+            project_slots=slot_map,
         )
 
     @app.route("/mentor/logout")
     def mentor_logout() -> Any:
         session.clear()
         return redirect(url_for("register_page"))
+
+    @app.route("/mentor/projects/create", methods=["POST"])
+    def mentor_project_create() -> Any:
+        if not session.get("mentor_id"):
+            return redirect(url_for("register_page"))
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return redirect(url_for("register_page"))
+        title = request.form.get("title", "").strip()
+        category = request.form.get("category", "").strip()
+        description = request.form.get("description", "").strip()
+        team_size_raw = request.form.get("team_size", "").strip()
+        if not title:
+            return redirect(url_for("mentor_dashboard"))
+        try:
+            team_size_val = int(team_size_raw) if team_size_raw else 5
+            if team_size_val < 1 or team_size_val > 5:
+                team_size_val = 5
+        except Exception:
+            team_size_val = 5
+        project = Project(
+            title=title,
+            category=category,
+            description=description or "Mentor-created project",
+            team_size=team_size_val,
+            mentor_id=mentor.id,
+        )
+        try:
+            db.session.add(project)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return redirect(url_for("mentor_dashboard"))
+
+    @app.route("/mentor/projects/<int:project_id>/remove_member", methods=["POST"])
+    def mentor_project_remove_member(project_id: int) -> Any:
+        if not session.get("mentor_id"):
+            return redirect(url_for("register_page"))
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return redirect(url_for("register_page"))
+        req_id = request.form.get("request_id")
+        member = (
+            JoinRequest.query.filter_by(id=req_id, project_id=project_id, mentor_id=mentor.id)
+            .first()
+        )
+        if member:
+            member.status = "removed"
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        return redirect(url_for("mentor_dashboard"))
+
+    @app.route("/mentor/projects/<int:project_id>/delete", methods=["POST"])
+    def mentor_project_delete(project_id: int) -> Any:
+        if not session.get("mentor_id"):
+            return redirect(url_for("register_page"))
+        mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
+        if mentor is None:
+            return redirect(url_for("register_page"))
+        project = Project.query.filter_by(id=project_id, mentor_id=mentor.id).first()
+        if project is None:
+            return redirect(url_for("mentor_dashboard"))
+        try:
+            db.session.execute(
+                text(
+                    "UPDATE requests SET status = 'project_deleted', project_id = NULL WHERE project_id = :pid"
+                ),
+                {"pid": project.id},
+            )
+            db.session.delete(project)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return redirect(url_for("mentor_dashboard"))
 
     return app
 

@@ -41,6 +41,9 @@ const storiesData = [
   },
 ];
 
+let cachedMentors = [];
+let cachedProjects = [];
+
 const select = (q) => document.querySelector(q);
 const selectAll = (q) => Array.from(document.querySelectorAll(q));
 
@@ -153,6 +156,9 @@ function renderProjects(projects) {
   if (!container) return;
   container.innerHTML = "";
   projects.forEach((project, index) => {
+    const available = project.available ?? project.team_size ?? 0;
+    const capacity = project.capacity ?? project.team_size ?? "N/A";
+    const isFull = project.is_full || (available !== null && available <= 0);
     const card = document.createElement("article");
     card.className = "project-card tilt-card";
     card.style.transitionDelay = `${index * 60}ms`;
@@ -160,11 +166,38 @@ function renderProjects(projects) {
       <h4>${project.title}</h4>
       <p class="mentor-meta">${project.category || "Project"}</p>
       <p>${project.description || ""}</p>
-      <p class="mentor-meta">Team size: ${project.team_size || "N/A"}</p>
-      <button class="cta-button outline full" data-project="${project.title}">Join Team</button>
+      <p class="mentor-meta">Team size: ${capacity}</p>
+      <p class="mentor-meta">${available > 0 ? `${available} slots left` : "Team is full"}</p>
+      <button class="cta-button outline full" data-project="${project.title}" data-project-id="${project.id}" ${isFull ? "disabled" : ""}>${isFull ? "Full" : "Join Team"}</button>
     `;
     container.appendChild(card);
   });
+}
+
+function populateJoinMentorSelect() {
+  const selectEl = select("#joinMentor");
+  if (!selectEl) return;
+  const currentValue = selectEl.value;
+  selectEl.innerHTML = `<option value="">No preference</option>`;
+  cachedMentors.forEach((mentor) => {
+    const opt = document.createElement("option");
+    opt.value = mentor.id;
+    opt.textContent = mentor.name;
+    selectEl.appendChild(opt);
+  });
+  if (currentValue) selectEl.value = currentValue;
+}
+
+async function refreshMentorUI() {
+  cachedMentors = await fetchJSON("/mentors");
+  updateStats(cachedMentors, cachedProjects);
+  renderMentors(cachedMentors);
+  renderMentorGrid(cachedMentors);
+  populateJoinMentorSelect();
+  bindMentorButtons();
+  setupTilt();
+  setupReveal();
+  return cachedMentors;
 }
 
 function renderStories() {
@@ -240,6 +273,8 @@ function setupTilt() {
   const cards = document.querySelectorAll(".story-card, .mentor-card, .project-card");
 
   cards.forEach((card) => {
+    if (card.dataset.tiltBound) return;
+    card.dataset.tiltBound = "1";
     card.addEventListener("mousemove", (e) => {
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -271,7 +306,11 @@ function setupReveal() {
     },
     { threshold: 0.2 }
   );
-  selectAll(".mentor-card, .project-card").forEach((el) => observer.observe(el));
+  selectAll(".mentor-card, .project-card").forEach((el) => {
+    if (el.dataset.revealBound) return;
+    el.dataset.revealBound = "1";
+    observer.observe(el);
+  });
 }
 
 function setupNavSpy() {
@@ -332,7 +371,9 @@ function bindProjectButtons() {
     btn.addEventListener("click", () => {
       const modal = select("#projectModal");
       const titleField = select("#projectTitleField");
+      const idField = select("#projectIdField");
       if (titleField) titleField.value = btn.dataset.project || "";
+      if (idField) idField.value = btn.dataset.projectId || "";
       openModal(modal);
     });
   });
@@ -344,7 +385,7 @@ function handleMentorForm() {
   if (!form) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    status.textContent = "Sending...";
+    if (status) status.textContent = "Sending...";
     const formData = Object.fromEntries(new FormData(form).entries());
     if (formData.mentor_id) formData.mentor_id = Number(formData.mentor_id);
     const res = await fetch("/api/join_mentor", {
@@ -353,8 +394,12 @@ function handleMentorForm() {
       body: JSON.stringify(formData),
     });
     const data = await res.json();
-    status.textContent = data.message || data.status;
-    if (res.ok) form.reset();
+    if (status) status.textContent = data.message || data.status;
+    if (res.ok) {
+      form.reset();
+      await refreshMentorUI();
+      closeModal(select("#mentorModal"));
+    }
   });
 }
 
@@ -366,6 +411,7 @@ function handleProjectForm() {
     e.preventDefault();
     status.textContent = "Submitting...";
     const formData = Object.fromEntries(new FormData(form).entries());
+    if (formData.project_id) formData.project_id = Number(formData.project_id);
     const res = await fetch("/api/join_project", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -397,6 +443,7 @@ function handleJoinForm() {
       contact: formData.contact,
       intro: formData.message,
     };
+    if (formData.mentor_id) payload.mentor_id = Number(formData.mentor_id);
     const res = await fetch("/api/join_project", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -406,6 +453,166 @@ function handleJoinForm() {
     status.textContent = data.message || data.status || "Saved.";
     if (res.ok) form.reset();
   });
+}
+
+async function fetchStudentRequests() {
+  const res = await fetch("/api/student/requests");
+  if (!res.ok) throw new Error("Not logged in");
+  return res.json();
+}
+
+function renderStudentProfile(data) {
+  const container = select("#studentProfile");
+  const statusEl = select("#studentLoginStatus");
+  if (!container) return;
+  if (!data || !data.requests || !data.requests.length) {
+    container.innerHTML = '<p class="muted">No requests yet for this email.</p>';
+    return;
+  }
+  const summary = `
+    <div class="stats" style="margin-bottom: 10px;">
+      <div class="stat-card glass">
+        <p class="label">Pending requests</p>
+        <h3>${data.pending ?? 0}</h3>
+      </div>
+      <div class="stat-card glass">
+        <p class="label">Accepted</p>
+        <h3>${data.accepted ?? 0}</h3>
+      </div>
+    </div>
+  `;
+  const cards = data.requests
+    .map((req) => {
+      const status = (req.status || "pending").toUpperCase();
+      const typeLabel = req.request_type === "mentor" ? "Mentor request" : "Project join";
+      const title = req.project_title || req.mentor_name || "Request";
+      const canWithdraw = !["withdrawn", "rejected", "project_deleted"].includes(
+        (req.status || "").toLowerCase()
+      );
+      return `
+        <div class="card" data-request-id="${req.id}">
+          <div class="card-header">
+            <strong>${typeLabel}</strong> <span class="mentor-meta">(${status})</span>
+          </div>
+          <p class="mentor-meta">${title}</p>
+          <p class="mentor-meta">${req.email}</p>
+          <p>${req.message || req.intro || req.interest || ""}</p>
+          ${
+            canWithdraw
+              ? `<button class="cta-button outline" data-withdraw-request="${req.id}">Withdraw</button>`
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
+  container.innerHTML = summary + cards;
+  if (statusEl) statusEl.textContent = "";
+}
+
+function handleStudentLogin() {
+  const form = select("#studentLoginForm");
+  const status = select("#studentLoginStatus");
+  const container = select("#studentProfile");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (status) status.textContent = "Loading...";
+    const payload = Object.fromEntries(new FormData(form).entries());
+    const res = await fetch("/api/student/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (status) status.textContent = data.message || data.status || (res.ok ? "Loaded" : "Failed");
+    if (res.ok) {
+      renderStudentProfile(data);
+    } else if (container) {
+      container.innerHTML = "";
+    }
+  });
+
+  if (container) {
+    container.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-withdraw-request]");
+      if (!btn) return;
+      const id = btn.dataset.withdrawRequest;
+      if (status) status.textContent = "Withdrawing...";
+      const res = await fetch(`/api/student/withdraw/${id}`, { method: "POST" });
+      const data = await res.json();
+      if (status) status.textContent = data.message || data.status || (res.ok ? "Removed" : "Failed");
+      if (res.ok) {
+        try {
+          const refreshed = await fetchStudentRequests();
+          renderStudentProfile(refreshed);
+        } catch (_) {
+          // ignore
+        }
+        cachedProjects = await fetchJSON("/projects");
+        renderProjects(cachedProjects);
+        bindProjectButtons();
+      }
+    });
+  }
+}
+
+function handleStudentForms() {
+  const mentorForm = select("#studentMentorForm");
+  const mentorStatus = select("#studentMentorStatus");
+  const projectForm = select("#studentProjectForm");
+  const projectStatus = select("#studentProjectStatus");
+  const profile = select("#studentProfile");
+
+  if (mentorForm) {
+    mentorForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (mentorStatus) mentorStatus.textContent = "Sending...";
+      const payload = Object.fromEntries(new FormData(mentorForm).entries());
+      if (payload.mentor_id) payload.mentor_id = Number(payload.mentor_id);
+      const res = await fetch("/api/join_mentor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (mentorStatus) mentorStatus.textContent = data.message || data.status || (res.ok ? "Sent" : "Failed");
+      if (res.ok) {
+        mentorForm.reset();
+        if (profile) {
+          try {
+            const refreshed = await fetchStudentRequests();
+            renderStudentProfile(refreshed);
+          } catch (_) {}
+        }
+      }
+    });
+  }
+
+  if (projectForm) {
+    projectForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (projectStatus) projectStatus.textContent = "Submitting...";
+      const payload = Object.fromEntries(new FormData(projectForm).entries());
+      if (payload.mentor_id) payload.mentor_id = Number(payload.mentor_id);
+      const res = await fetch("/api/join_project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (projectStatus) projectStatus.textContent = data.message || data.status || (res.ok ? "Sent" : "Failed");
+      if (res.ok) {
+        projectForm.reset();
+        if (profile) {
+          try {
+            const refreshed = await fetchStudentRequests();
+            renderStudentProfile(refreshed);
+          } catch (_) {}
+        }
+      }
+    });
+  }
 }
 
 function smoothNavClicks() {
@@ -444,19 +651,16 @@ async function init() {
   handleMentorForm();
   handleProjectForm();
   handleJoinForm();
+  handleStudentLogin();
+  handleStudentForms();
   addParallax();
   handleMentorRegisterPage();
 
-  const mentors = await fetchJSON("/mentors");
-  const projects = await fetchJSON("/projects");
-  updateStats(mentors, projects);
-  renderMentors(mentors);
-  renderMentorGrid(mentors);
-  renderProjects(projects);
-  setupTilt();
-  setupReveal();
-  bindMentorButtons();
+  cachedProjects = await fetchJSON("/projects");
+  renderProjects(cachedProjects);
   bindProjectButtons();
+
+  await refreshMentorUI();
   setupNavSpy();
 }
 

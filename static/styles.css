@@ -137,9 +137,11 @@ a {
   top: 0;
   z-index: 20;
   padding: 14px 24px;
+  padding-right: 340px; /* reserve space for pill nav so text doesn't sit underneath */
   background: rgba(10, 26, 47, 0.7);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
 }
 
 .brand {
@@ -271,6 +273,19 @@ main {
   background: linear-gradient(135deg, var(--blue), var(--red));
   color: white;
   box-shadow: 0 10px 30px rgba(0, 51, 160, 0.4);
+}
+
+/* Responsive: drop nav into flow on narrower screens */
+@media (max-width: 1180px) {
+  .site-header {
+    padding-right: 24px;
+  }
+  .pill-nav {
+    position: static;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
 }
 
 .hero {

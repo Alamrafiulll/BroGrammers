@@ -22,18 +22,6 @@
       <div class="hero-actions">
         <a class="cta-button code" href="{{ url_for('register_page') }}">Become a Mentor</a>
       </div>
-      <div class="stats">
-        <div class="stat-card glass">
-          <p class="label">Mentors</p>
-          <h3 id="statMentors">-</h3>
-          <span class="muted">Updated live</span>
-        </div>
-        <div class="stat-card glass">
-          <p class="label">Projects</p>
-          <h3 id="statProjects">-</h3>
-          <span class="muted">Active squads</span>
-        </div>
-      </div>
     </div>
     <div class="hero-visual">
       <div class="mascot-orb">
@@ -41,17 +29,6 @@
       </div>
       <div class="floating-dots"></div>
     </div>
-  </div>
-</section>
-
-<section id="stories" class="section stories" data-section>
-  <div class="section-heading">
-    <p class="tag">Success Stories</p>
-    <h2>Meet the Alumni Shaping the Future</h2>
-    <p class="lede">Spotlighting the achievements and journeys of our global MMU community.</p>
-  </div>
-  <div class="stories-wrap">
-    <div class="stories-track" id="storiesTrack"></div>
   </div>
 </section>
 
@@ -90,6 +67,19 @@
     <p class="lede">Tell us who you are and we will route you to a mentor or project lead.</p>
   </div>
   <div class="join-card glass">
+    <div class="join-card glass" style="margin-bottom: 12px;">
+      <h4>My STEM profile</h4>
+      <p class="muted">Enter your email to see your requests and withdraw if needed.</p>
+      <form id="studentLoginForm" class="join-form" style="gap: 8px;">
+        <div class="form-group">
+          <label for="studentEmail">Email</label>
+          <input id="studentEmail" name="email" type="email" required>
+        </div>
+        <button type="submit" class="cta-button outline full">View my activity</button>
+        <p class="form-status" id="studentLoginStatus"></p>
+      </form>
+      <div id="studentProfile" class="card-list" style="margin-top: 8px;"></div>
+    </div>
     <form id="joinForm" class="join-form">
       <div class="form-group">
         <label for="joinName">Full Name</label>
@@ -138,6 +128,12 @@
       <div class="form-group">
         <label for="joinAvailability">Availability (hrs/week)</label>
         <input id="joinAvailability" name="availability" type="number" min="1" max="60" placeholder="e.g., 4">
+      </div>
+      <div class="form-group">
+        <label for="joinMentor">Preferred mentor (optional)</label>
+        <select id="joinMentor" name="mentor_id">
+          <option value="">No preference</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="joinContact">Contact link / handle</label>
@@ -208,6 +204,7 @@
         <label>Project</label>
         <input type="text" name="project_title" id="projectTitleField" readonly>
       </div>
+      <input type="hidden" name="project_id" id="projectIdField">
       <div class="form-group">
         <label>Student name</label>
         <input type="text" name="student_name" required>
