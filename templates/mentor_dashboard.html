@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="tag">Mentor Dashboard</p>
+    <h2>Welcome, {{ mentor.name }}</h2>
+    <p class="lede">Track student proposals, accept or reject, and see your request stats.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="cta-button outline" href="{{ url_for('mentor_logout') }}">Logout</a>
+    <a class="cta-button" href="{{ url_for('stem_page') }}">Back to STEM Portal</a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="stats" style="margin-bottom: 16px;">
+    <div class="stat-card glass">
+      <p class="label">Pending requests</p>
+      <h3>{{ requests|selectattr("status", "equalto", "pending")|list|length }}</h3>
+      <span class="muted">Awaiting your decision</span>
+    </div>
+    <div class="stat-card glass">
+      <p class="label">Total requests</p>
+      <h3>{{ requests|length }}</h3>
+      <span class="muted">All time</span>
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <p class="tag">Student proposals</p>
+    <h2>Review and decide</h2>
+  </div>
+
+  {% if not requests %}
+    <div class="join-card glass">
+      <p class="muted">No student proposals yet. Share your mentor link from the STEM portal.</p>
+    </div>
+  {% endif %}
+
+  <div class="mentor-grid">
+    {% for req in requests %}
+    <article class="mentor-card tilt-card" style="opacity: 1;">
+      <div class="mentor-info">
+        <h4>{{ req.student_name }}</h4>
+        <p class="mentor-meta">{{ req.email }} | {{ req.role or "Student" }}</p>
+      </div>
+      <p class="mentor-desc">
+        {{ req.message or req.intro or req.interest or req.project_title or "No description provided." }}
+      </p>
+      <p class="mentor-meta">Project: {{ req.project_title or req.interest or "Proposal" }}</p>
+      <p class="mentor-meta">Skills: {{ req.skills or "N/A" }}</p>
+      <p class="mentor-meta">Availability: {{ req.availability or "N/A" }}</p>
+      <div class="hero-actions" style="margin-top: 10px;">
+        <form method="post" action="{{ url_for('mentor_decision', req_id=req.id) }}" style="display: inline;">
+          <input type="hidden" name="action" value="accepted">
+          <button class="cta-button primary" type="submit" {% if req.status == "accepted" %}disabled{% endif %}>Accept</button>
+        </form>
+        <form method="post" action="{{ url_for('mentor_decision', req_id=req.id) }}" style="display: inline;">
+          <input type="hidden" name="action" value="rejected">
+          <button class="cta-button outline" type="submit" {% if req.status == "rejected" %}disabled{% endif %}>Reject</button>
+        </form>
+      </div>
+      <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

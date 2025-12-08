@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="tag">Project Teams</p>
+    <h2>Join a team and build together.</h2>
+    <p class="lede">Pick a project, share your skills, and get matched fast.</p>
+  </div>
+  <a class="cta-button" href="{{ url_for('mentors_page') }}">Find a Mentor</a>
+</section>
+
+<section>
+  <div id="projectGrid" class="card-grid"></div>
+</section>
+
+<div id="projectModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="close-btn" data-close-modal aria-label="Close">x</button>
+    <h3>Join Team</h3>
+    <form id="projectForm">
+      <div class="form-group">
+        <label>Project</label>
+        <input type="text" name="project_title" id="projectTitleField" readonly>
+      </div>
+      <div class="form-group">
+        <label>Student name</label>
+        <input type="text" name="student_name" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label>Skills</label>
+        <input type="text" name="skills" required>
+      </div>
+      <div class="form-group">
+        <label>Short intro</label>
+        <textarea name="intro" rows="3" placeholder="What will you bring to the team?"></textarea>
+      </div>
+      <button type="submit" class="cta-button primary full">Submit</button>
+      <p class="form-status" id="projectStatus"></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

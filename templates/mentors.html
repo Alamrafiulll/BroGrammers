@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="tag">Mentor Network</p>
+    <h2>Explore mentors ready to guide MMU students.</h2>
+    <p class="lede">Click request to share your project interest.</p>
+  </div>
+  <a class="cta-button outline" href="{{ url_for('register_page') }}">Become a Mentor</a>
+</section>
+
+<section>
+  <div id="mentorGrid" class="card-grid"></div>
+</section>
+
+<div id="mentorModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="close-btn" data-close-modal aria-label="Close">x</button>
+    <h3>Request Mentorship</h3>
+    <form id="mentorForm">
+      <div class="form-group">
+        <label>Mentor</label>
+        <input type="text" name="mentor_name" id="mentorNameField" readonly>
+      </div>
+      <div class="form-group">
+        <label>Student name</label>
+        <input type="text" name="student_name" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label>Project or research interest</label>
+        <input type="text" name="interest" required>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea name="message" rows="3" placeholder="What do you hope to achieve?"></textarea>
+      </div>
+      <button type="submit" class="cta-button primary full">Send Request</button>
+      <p class="form-status" id="mentorStatus"></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="tag">Mentor Registration</p>
+    <h2>Share your expertise with MMU students.</h2>
+    <p class="lede">Quick, no-login form to start mentoring.</p>
+  </div>
+</section>
+
+<section class="form-shell">
+  <form id="registerForm" class="card form-card">
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" name="name" required>
+    </div>
+    <div class="form-group">
+      <label>Field</label>
+      <input type="text" name="field" placeholder="AI, Robotics, Physics" required>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description" rows="3" required placeholder="How you help students..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Research area</label>
+      <input type="text" name="research_area" placeholder="Optional focus area">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" name="email" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label>Access code (for mentor login)</label>
+      <input type="password" name="access_code" placeholder="Create a simple pin/code" required>
+    </div>
+    <button type="submit" class="cta-button primary full">Submit Mentor Profile</button>
+    <p class="form-status" id="registerStatus"></p>
+  </form>
+
+  <div class="card">
+    <h3>New Mentor Preview</h3>
+    <div id="newMentorPreview" class="card-list"></div>
+  </div>
+
+  <div class="card">
+    <h3>Mentor Access</h3>
+    <p class="lede">Login with the email + access code you set to review student requests.</p>
+    <form id="mentorLoginForm" class="form-card" style="padding: 0;">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label>Access code</label>
+        <input type="password" name="access_code" required>
+      </div>
+      <button type="submit" class="cta-button primary full">Login as Mentor</button>
+      <p class="form-status" id="mentorLoginStatus"></p>
+    </form>
+
+    <div id="mentorDashboard" class="card-list" style="margin-top: 12px;"></div>
+  </div>
+</section>
+{% endblock %}

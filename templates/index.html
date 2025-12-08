@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section id="home" class="hero full-panel">
+  <div class="hero-bg layer"></div>
+  <div class="hero-grid">
+    <!-- LEFT: Overview + live stats -->
+    <div class="hero-copy">
+      <div class="pill">Multimedia University • Cyberjaya</div>
+      <h2 class="typewriter" id="typewriter">STEM @ MMU</h2>
+      <p class="lede">
+        A future-focused campus where STEM projects, innovation and real-world impact
+        are built by students and mentors together.
+      </p>
+
+      <div class="stats" style="margin-top: 20px;">
+        <div class="stat-card glass">
+          <p class="label">Registered mentors</p>
+          <h3>{{ mentor_count }}</h3>
+          <span class="muted">Live from STEM portal</span>
+        </div>
+        <div class="stat-card glass">
+          <p class="label">Active projects</p>
+          <h3>{{ project_count }}</h3>
+          <span class="muted">Student-led initiatives</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: University picture -->
+    <div class="hero-visual">
+      <div class="mascot-orb" style="border-radius: 24px;">
+        <img src="{{ url_for('static', filename='img/ebee-home.png') }}"
+             alt="MMU Campus" class="mascot-img">
+      </div>
+      <div class="floating-dots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Vision & Mission -->
+<section id="vision" class="section">
+  <div class="section-heading">
+    <p class="tag">Vision & Mission</p>
+    <h2>Shaping future-ready engineers and innovators</h2>
+    <p class="lede">
+      MMU aims to nurture graduates who are not only technically strong, but also creative,
+      ethical, and capable of leading technology-driven change in Malaysia and beyond.
+    </p>
+  </div>
+  <div class="project-grid">
+    <article class="project-card tilt-card">
+      <h4>Vision</h4>
+      <p class="mentor-meta">Future-ready, industry-driven</p>
+      <p>
+        To be a leading private university that drives innovation, digital transformation,
+        and knowledge creation in engineering and technology.
+      </p>
+    </article>
+    <article class="project-card tilt-card">
+      <h4>Mission</h4>
+      <p class="mentor-meta">People, impact, community</p>
+      <p>
+        To produce competent professionals and entrepreneurs through high-quality education,
+        impactful research, and strong industry collaboration.
+      </p>
+    </article>
+  </div>
+</section>
+
+<!-- MMU History -->
+<section id="history" class="section">
+  <div class="section-heading">
+    <p class="tag">MMU History</p>
+    <h2>From Malaysia’s first private university to a tech hub</h2>
+    <p class="lede">
+      Founded in 1996, MMU was Malaysia’s first private university, growing into a
+      hub for ICT, engineering and digital creativity with campuses in Cyberjaya and Melaka.
+    </p>
+  </div>
+  <div class="join-card glass">
+    <p>
+      Over the decades, MMU has supported thousands of STEM graduates, many of whom now lead
+      teams in multinational companies, start-ups, and research labs. The Engineering and
+      Technology community continues this legacy through student-led projects, competitions,
+      and industry-linked capstones.
+    </p>
+  </div>
+</section>
+
+<!-- Faculties & Projects -->
+<section id="faculties" class="section">
+  <div class="section-heading">
+    <p class="tag">Faculties & Projects</p>
+    <h2>Where do our STEM projects live?</h2>
+    <p class="lede">
+      Scroll through faculties to see example projects and which school champions which theme.
+      Use this as a gateway before diving into the STEM portal.
+    </p>
+  </div>
+
+  <div class="project-grid">
+    <article class="project-card tilt-card" id="fet">
+      <h4>Faculty of Engineering & Technology (FET)</h4>
+      <p class="mentor-meta">Robotics • IoT • Power Systems</p>
+      <p>Projects: Smart Campus Energy Dashboard, Autonomous Delivery Robot, Green Power Analytics.</p>
+      <p class="mentor-meta">Leads: hardware, embedded, smart infrastructure.</p>
+    </article>
+
+    <article class="project-card tilt-card" id="fist">
+      <h4>Faculty of Information Science & Technology (FIST)</h4>
+      <p class="mentor-meta">AI • Data • Software</p>
+      <p>Projects: AI Study Buddy, Learning Analytics Dashboard, ML-powered Lab Scheduler.</p>
+      <p class="mentor-meta">Leads: AI, software engineering, cloud platforms.</p>
+    </article>
+
+    <article class="project-card tilt-card" id="fcm">
+      <h4>Faculty of Creative Multimedia (FCM)</h4>
+      <p class="mentor-meta">XR • Visualisation • UI/UX</p>
+      <p>Projects: VR Physics Lab, Interactive Robotics Showcase, STEM Visual Storytelling.</p>
+      <p class="mentor-meta">Leads: design, visual storytelling, human-computer interaction.</p>
+    </article>
+  </div>
+</section>
+
+{% endblock %}

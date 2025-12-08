@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MMU Engineering & STEM Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <div class="navbar">
+          <div class="header-line">
+            <div class="logo">
+              <a href="{{ url_for('home') }}">MMU</a>
+            </div>
+            <p class="eyebrow">Multimedia University</p>
+            <h1>Empowering The Future</h1>
+          </div>
+      </div>
+    </div>
+
+    {% set is_stem = request.path == url_for('stem_page') %}
+    <nav class="pill-nav header-pill-nav" aria-label="Primary navigation">
+      <a href="{{ '#home' if is_stem else url_for('stem_page') }}">STEM Portal</a>
+      <a href="{{ '#stories' if is_stem else url_for('stem_page') + '#stories' }}" data-target="stories">Success Stories</a>
+      <a href="{{ '#mentorship' if is_stem else url_for('stem_page') + '#mentorship' }}" data-target="mentorship">Mentorship</a>
+      <a href="{{ '#projects' if is_stem else url_for('stem_page') + '#projects' }}" data-target="projects">Project Teams</a>
+      <a href="{{ '#join' if is_stem else url_for('stem_page') + '#join' }}" data-target="join">Join Us</a>
+      <a href="{{ url_for('contact_page') }}">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>MMU Engineering & STEM</strong> – Connecting students with mentors, teams, and projects.
+    </div>
+    <div class="footer-links">
+      <span>Built for the MMU STEM community</span>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

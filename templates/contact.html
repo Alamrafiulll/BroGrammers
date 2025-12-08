@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="section">
+  <div class="section-heading">
+    <p class="tag">Contact Us</p>
+    <h2>Get in touch with MMU</h2>
+    <p class="lede">
+      Reach out to the Engineering & Technology community for collaborations, workshops,
+      and student project enquiries.
+    </p>
+  </div>
+
+  <div class="project-grid">
+    <article class="project-card glass">
+      <h4>Campus Address</h4>
+      <p>Multimedia University (MMU) Cyberjaya</p>
+      <p>
+        Persiaran Multimedia,<br>
+        63100 Cyberjaya,<br>
+        Selangor, Malaysia
+      </p>
+      <p class="mentor-meta">Phone: +60-3-8312 5000</p>
+      <p class="mentor-meta">Email: info@mmu.edu.my (placeholder)</p>
+    </article>
+
+    <article class="project-card glass">
+      <h4>Find us on the map</h4>
+      <img src="{{ url_for('static', filename='img/mmu-map.jpg') }}"
+           alt="Map to MMU Cyberjaya"
+           style="width:100%; border-radius: 12px; object-fit: cover;">
+      <p class="mentor-meta" style="margin-top: 8px;">
+        Use any navigation app and search for "Multimedia University Cyberjaya".
+      </p>
+    </article>
+  </div>
+</section>
+
+{% endblock %}
