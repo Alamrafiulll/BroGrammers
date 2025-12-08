@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="section-heading">
+    <p class="tag">Admin</p>
+    <h2>Mentor approvals</h2>
+    <p class="lede">Approve or reject mentors before they can log in.</p>
+  </div>
+
+  <div class="hero-actions" style="margin-bottom: 12px;">
+    <a class="cta-button outline" href="{{ url_for('admin_logout') }}">Logout</a>
+    <a class="cta-button" href="{{ url_for('home') }}">Back to Home</a>
+  </div>
+
+  <h4>Pending</h4>
+  {% if pending %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Field</th><th>Research</th><th>Email</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in pending %}
+        <tr>
+          <td>{{ m.name }}</td>
+          <td>{{ m.field }}</td>
+          <td>{{ m.research_area }}</td>
+          <td>{{ m.email }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_moderate_mentor', mentor_id=m.id, action='approve') }}" style="display: inline;">
+              <button class="cta-button primary" type="submit">Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_moderate_mentor', mentor_id=m.id, action='reject') }}" style="display: inline;">
+              <button class="cta-button outline" type="submit">Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="muted">No pending mentors.</p>
+  {% endif %}
+
+  <h4 style="margin-top: 16px;">Approved</h4>
+  {% if approved %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Field</th><th>Research</th><th>Email</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in approved %}
+        <tr>
+          <td>{{ m.name }}</td>
+          <td>{{ m.field }}</td>
+          <td>{{ m.research_area }}</td>
+          <td>{{ m.email }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_delete_mentor', mentor_id=m.id) }}" onsubmit="return confirm('Remove this mentor?');" style="display: inline;">
+              <button class="cta-button outline" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="muted">No approved mentors yet.</p>
+  {% endif %}
+
+  <h4 style="margin-top: 16px;">Rejected</h4>
+  {% if rejected %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Field</th><th>Research</th><th>Email</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in rejected %}
+        <tr>
+          <td>{{ m.name }}</td>
+          <td>{{ m.field }}</td>
+          <td>{{ m.research_area }}</td>
+          <td>{{ m.email }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_delete_mentor', mentor_id=m.id) }}" onsubmit="return confirm('Remove this mentor?');" style="display: inline;">
+              <button class="cta-button outline" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="muted">No rejected mentors.</p>
+  {% endif %}
+</section>
+{% endblock %}

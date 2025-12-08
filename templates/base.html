@@ -27,9 +27,8 @@
     <nav class="pill-nav header-pill-nav" aria-label="Primary navigation">
       <a href="{{ url_for('home') }}">Home</a>
       <a href="{{ url_for('stem_page') }}">STEM Portal</a>
-      <a href="{{ '#mentorship' if is_stem else url_for('stem_page') + '#mentorship' }}" data-target="mentorship">Mentorship</a>
-      <a href="{{ '#projects' if is_stem else url_for('stem_page') + '#projects' }}" data-target="projects">Project Teams</a>
       <a href="{{ '#join' if is_stem else url_for('stem_page') + '#join' }}" data-target="join">Join Us</a>
+      <a href="{{ url_for('register_page') }}">Mentor Login</a>
       <a href="{{ url_for('student_portal') }}">Student</a>
       <a href="{{ url_for('contact_page') }}">Contact</a>
     </nav>

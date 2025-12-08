@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="section-heading">
+    <p class="tag">Admin</p>
+    <h2>Mentor approvals</h2>
+    <p class="lede">Sign in to approve or reject mentor registrations.</p>
+  </div>
+  <div class="join-card glass">
+    <form method="post" class="join-form" style="gap: 10px;">
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required>
+      </div>
+      <button class="cta-button primary" type="submit">Login</button>
+      {% if error %}<p class="form-status" style="color: #f87171;">{{ error }}</p>{% endif %}
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -288,6 +288,32 @@ main {
   }
 }
 
+/* Admin table */
+.table-wrap {
+  overflow-x: auto;
+  margin: 8px 0 16px;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.admin-table th,
+.admin-table td {
+  padding: 10px 12px;
+  text-align: left;
+}
+.admin-table th {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+}
+.admin-table tr:nth-child(every) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
 .hero {
   position: relative;
   overflow: hidden;

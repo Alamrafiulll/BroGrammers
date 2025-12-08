@@ -48,6 +48,7 @@ class Mentor(db.Model):
     photo = db.Column(db.String(500), default="")
     email = db.Column(db.String(200))
     access_code_hash = db.Column(db.String(255))
+    status = db.Column(db.String(20), default="pending")  # pending/approved/rejected
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     requests = db.relationship("JoinRequest", back_populates="mentor", lazy="dynamic")
 
@@ -61,6 +62,7 @@ class Mentor(db.Model):
             "description": self.description,
             "research_area": self.research_area,
             "photo": self.photo,
+            "status": self.status,
             "pending_requests": pending,
             "total_requests": total,
             "created_at": self.created_at.isoformat(),
@@ -263,6 +265,7 @@ def upgrade_schema() -> None:
     """Apply lightweight schema upgrades for new features without migrations."""
     add_column_if_missing("mentors", "email", "TEXT")
     add_column_if_missing("mentors", "access_code_hash", "TEXT")
+    add_column_if_missing("mentors", "status", "TEXT DEFAULT 'pending'")
     add_column_if_missing("requests", "status", "TEXT DEFAULT 'pending'")
     add_column_if_missing("requests", "mentor_id", "INTEGER")
     add_column_if_missing("requests", "project_id", "INTEGER")
@@ -278,7 +281,12 @@ def authenticate_mentor(email: str, access_code: str) -> Mentor | None:
     if not (email and access_code):
         return None
     mentor = Mentor.query.filter(Mentor.email == email.lower()).first()
-    if mentor and mentor.access_code_hash and check_password_hash(mentor.access_code_hash, access_code):
+    if (
+        mentor
+        and mentor.access_code_hash
+        and mentor.status == "approved"
+        and check_password_hash(mentor.access_code_hash, access_code)
+    ):
         return mentor
     return None
 
@@ -287,6 +295,7 @@ def create_app() -> Flask:
     """Application factory."""
     app = Flask(__name__)
     app.secret_key = os.getenv("FLASK_SECRET_KEY", "mmu-stem-secret")
+    app.config["ADMIN_PASSWORD"] = os.getenv("ADMIN_PASSWORD", "admin123")
     init_database(app)
 
     # -----------------
@@ -301,7 +310,7 @@ def create_app() -> Flask:
         """
         return render_template(
             "index.html",
-            mentor_count=Mentor.query.count(),
+            mentor_count=Mentor.query.filter_by(status="approved").count(),
             project_count=Project.query.count(),
         )
 
@@ -340,7 +349,7 @@ def create_app() -> Flask:
             session["student_name"] = student_name
         pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
         accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
-        mentors = Mentor.query.order_by(Mentor.name.asc()).all()
+        mentors = Mentor.query.filter_by(status="approved").order_by(Mentor.name.asc()).all()
         return render_template(
             "student.html",
             student_email=student_email,
@@ -357,6 +366,69 @@ def create_app() -> Flask:
         session.pop("student_email", None)
         session.pop("student_name", None)
         return redirect(url_for("student_portal"))
+
+    # -----------------
+    # Admin routes (simple password)
+    # -----------------
+    @app.route("/admin", methods=["GET", "POST"])
+    def admin_login() -> Any:
+        error = None
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            if password == app.config["ADMIN_PASSWORD"]:
+                session["is_admin"] = True
+                return redirect(url_for("admin_dashboard"))
+            error = "Invalid password."
+        return render_template("admin_login.html", error=error)
+
+    @app.route("/admin/dashboard")
+    def admin_dashboard() -> Any:
+        if not session.get("is_admin"):
+            return redirect(url_for("admin_login"))
+        pending = Mentor.query.filter_by(status="pending").order_by(Mentor.created_at.desc()).all()
+        approved = Mentor.query.filter_by(status="approved").order_by(Mentor.created_at.desc()).all()
+        rejected = Mentor.query.filter_by(status="rejected").order_by(Mentor.created_at.desc()).all()
+        return render_template(
+            "admin_dashboard.html",
+            pending=pending,
+            approved=approved,
+            rejected=rejected,
+        )
+
+    @app.route("/admin/mentors/<int:mentor_id>/<action>", methods=["POST"])
+    def admin_moderate_mentor(mentor_id: int, action: str) -> Any:
+        if not session.get("is_admin"):
+            return redirect(url_for("admin_login"))
+        mentor = Mentor.query.filter_by(id=mentor_id).first()
+        if mentor is None:
+            return redirect(url_for("admin_dashboard"))
+        if action == "approve":
+            mentor.status = "approved"
+        elif action == "reject":
+            mentor.status = "rejected"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/mentors/<int:mentor_id>/delete", methods=["POST"])
+    def admin_delete_mentor(mentor_id: int) -> Any:
+        if not session.get("is_admin"):
+            return redirect(url_for("admin_login"))
+        mentor = Mentor.query.filter_by(id=mentor_id).first()
+        if mentor:
+            try:
+                db.session.delete(mentor)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/logout")
+    def admin_logout() -> Any:
+        session.pop("is_admin", None)
+        return redirect(url_for("admin_login"))
 
     # Optional: keep the old detailed pages if you still use them
     @app.route("/mentors/list")
@@ -376,7 +448,7 @@ def create_app() -> Flask:
     # -----------------
     @app.route("/mentors", methods=["GET"])
     def get_mentors() -> Any:
-        mentors = Mentor.query.order_by(Mentor.created_at.desc()).all()
+        mentors = Mentor.query.filter_by(status="approved").order_by(Mentor.created_at.desc()).all()
         return jsonify([mentor.to_dict() for mentor in mentors])
 
     @app.route("/projects", methods=["GET"])
@@ -425,6 +497,7 @@ def create_app() -> Flask:
             photo=photo,
             email=email,
             access_code_hash=generate_password_hash(access_code),
+            status="pending",
         )
 
         try:
@@ -434,7 +507,13 @@ def create_app() -> Flask:
             db.session.rollback()
             return jsonify({"status": "error", "message": "Failed to save mentor."}), 500
 
-        return jsonify({"status": "success", "mentor": mentor.to_dict()})
+        return jsonify(
+            {
+                "status": "success",
+                "mentor": mentor.to_dict(),
+                "message": "Mentor submitted. Pending admin approval.",
+            }
+        )
 
     @app.route("/api/join_mentor", methods=["POST"])
     def join_mentor() -> Any:
@@ -455,7 +534,7 @@ def create_app() -> Flask:
         if mentor_obj is None and mentor_name:
             mentor_obj = Mentor.query.filter_by(name=mentor_name).first()
 
-        if mentor_obj is None:
+        if mentor_obj is None or mentor_obj.status != "approved":
             return jsonify({"status": "error", "message": "Mentor not found."}), 404
 
         request_row = JoinRequest(
@@ -508,7 +587,7 @@ def create_app() -> Flask:
         elif mentor_name:
             mentor_obj = Mentor.query.filter_by(name=mentor_name).first()
 
-        if mentor_id_raw and mentor_obj is None:
+        if mentor_id_raw and (mentor_obj is None or mentor_obj.status != "approved"):
             return jsonify({"status": "error", "message": "Selected mentor not found."}), 404
 
         if project_id_raw is not None and str(project_id_raw).strip() != "":
@@ -653,6 +732,8 @@ def create_app() -> Flask:
         mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
         if mentor is None:
             return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        if mentor.status != "approved":
+            return jsonify({"status": "error", "message": "Mentor not approved."}), 403
         requests_rows = (
             JoinRequest.query.filter_by(mentor_id=mentor.id)
             .order_by(JoinRequest.created_at.desc())
@@ -914,6 +995,9 @@ def create_app() -> Flask:
             return redirect(url_for("register_page"))
         mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
         if mentor is None:
+            session.clear()
+            return redirect(url_for("register_page"))
+        if mentor.status != "approved":
             session.clear()
             return redirect(url_for("register_page"))
         requests_rows = (
