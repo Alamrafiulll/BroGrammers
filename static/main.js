@@ -7,7 +7,7 @@ const storiesData = [
     achievements: ["AI & Machine Learning", "Campus Automation", "Student Success"],
     rating: "4.9",
     impact: "18k students reached",
-    img: "https://via.placeholder.com/240?text=AR",
+    img: "/static/img/aisha.jpg"
   },
   {
     name: "Kelvin Lim",
@@ -17,7 +17,7 @@ const storiesData = [
     achievements: ["ROS / Navigation", "Hardware Lead", "Competition Winner"],
     rating: "4.8",
     impact: "6 awards",
-    img: "https://via.placeholder.com/240?text=KL",
+    img:"/static/img/kelvin.jpg",
   },
   {
     name: "Mei Tan",
@@ -27,7 +27,7 @@ const storiesData = [
     achievements: ["Energy Grids", "Data Modeling", "Sustainability"],
     rating: "4.85",
     impact: "2 journals",
-    img: "https://via.placeholder.com/240?text=MT",
+    img: "/static/img/mei.jpg",
   },
   {
     name: "Amir Hassan",
@@ -37,15 +37,139 @@ const storiesData = [
     achievements: ["IoT / Edge", "Product Strategy", "Smart Campus"],
     rating: "4.92",
     impact: "5 buildings live",
-    img: "https://via.placeholder.com/240?text=AH",
+    img: "/static/img/hasan.jpg",
   },
 ];
 
 let cachedMentors = [];
 let cachedProjects = [];
+let studentProfileState = null;
 
 const select = (q) => document.querySelector(q);
 const selectAll = (q) => Array.from(document.querySelectorAll(q));
+
+async function fileToBase64(file) {
+  if (!file) return null;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function hasApprovedMentor(requests = []) {
+  return requests.some(
+    (req) =>
+      (req.request_type === "mentor" || req.type === "mentor") &&
+      (req.status || "").toLowerCase() === "accepted"
+  );
+}
+
+function setStudentAvatar(data) {
+  const avatar = select("#studentAvatar");
+  if (!avatar) return;
+  const img = avatar.querySelector("img");
+  const initialEl = avatar.querySelector(".student-avatar-initial");
+  const name = data?.student_name || data?.name || "";
+  const email = data?.email || "";
+  const initial = (name || email || "S").trim().charAt(0).toUpperCase() || "S";
+  const photo = data?.photo_url || data?.photo || data?.photo_data;
+  const hasPhoto = !!photo;
+  if (img) {
+    if (hasPhoto) {
+      img.src = photo;
+      img.classList.remove("hidden");
+      avatar.classList.add("has-photo");
+    } else {
+      img.src = "";
+      img.classList.add("hidden");
+      avatar.classList.remove("has-photo");
+    }
+  }
+  if (initialEl) {
+    if (hasPhoto) {
+      initialEl.textContent = "";
+      initialEl.style.display = "none";
+      initialEl.style.opacity = "0";
+      initialEl.style.visibility = "hidden";
+    } else {
+      initialEl.textContent = initial;
+      initialEl.style.display = "block";
+      initialEl.style.opacity = "1";
+      initialEl.style.visibility = "visible";
+    }
+  }
+  avatar.setAttribute("data-initial", initial);
+}
+
+async function ensureStudentSession(email, password, studentName, photoData) {
+  const res = await fetch("/api/student/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password,
+      student_name: studentName,
+      photo_data: photoData,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || data.status || "Login required");
+  }
+  setStudentAvatar(data);
+  return data;
+}
+
+function authGuardMessage(targetEl, message) {
+  if (targetEl) {
+    targetEl.textContent = message;
+  } else {
+    alert(message);
+  }
+}
+
+function studentAuthed() {
+  return !!(studentProfileState && studentProfileState.email);
+}
+
+function requireStudent(message = "Please register/login via the Join form to continue.") {
+  if (studentAuthed()) return true;
+  authGuardMessage(null, message);
+  return false;
+}
+
+async function preloadStudentSession() {
+  try {
+    const res = await fetch("/api/student/requests", { method: "GET" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.email) {
+      studentProfileState = { email: data.email, student_name: data.student_name, photo_url: data.photo_url, requests: data.requests };
+      setStudentAvatar(studentProfileState);
+    }
+  } catch (_) {
+    /* ignore preload errors */
+  }
+}
+
+function updateProjectGate() {
+  const form = select("#studentProjectForm");
+  const guard = select("#studentProjectGuard");
+  if (!form) return;
+  const submit = form.querySelector('button[type="submit"]');
+  const approved = hasApprovedMentor(studentProfileState?.requests || []);
+  if (submit) {
+    submit.disabled = !approved;
+    submit.textContent = approved ? "Submit for approval" : "Awaiting mentor approval";
+  }
+  if (guard) {
+    guard.textContent = approved
+      ? "Mentor approved. You can submit a project for mentor review."
+      : "You need an approved mentor before submitting a project idea.";
+  }
+}
 
 function mentorAvatar(mentor) {
   const img = mentor.photo || mentor.image || mentor.img;
@@ -145,7 +269,7 @@ function renderMentorGrid(mentors) {
       </div>
       <p class="mentor-desc">${mentor.description || "Ready to guide your project."}</p>
       <p class="mentor-meta">Requests: ${pending} pending / ${total} total</p>
-      <button class="cta-button primary glow full mentor-cta" data-mentor="${mentor.name}" data-mentor-id="${mentor.id}">Connect Now</button>
+      <button class="cta-button primary glow full mentor-cta" data-mentor="${mentor.name}" data-mentor-id="${mentor.id}" data-requires-student="true">Connect Now</button>
     `;
     container.appendChild(card);
   });
@@ -168,7 +292,7 @@ function renderProjects(projects) {
       <p>${project.description || ""}</p>
       <p class="mentor-meta">Team size: ${capacity}</p>
       <p class="mentor-meta">${available > 0 ? `${available} slots left` : "Team is full"}</p>
-      <button class="cta-button outline full" data-project="${project.title}" data-project-id="${project.id}" ${isFull ? "disabled" : ""}>${isFull ? "Full" : "Join Team"}</button>
+      <button class="cta-button outline full" data-project="${project.title}" data-project-id="${project.id}" data-requires-student="true" ${isFull ? "disabled" : ""}>${isFull ? "Full" : "Join Team"}</button>
     `;
     container.appendChild(card);
   });
@@ -356,6 +480,7 @@ function setupModals() {
 function bindMentorButtons() {
   selectAll("[data-mentor]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (!requireStudent()) return;
       const modal = select("#mentorModal");
       const nameField = select("#mentorNameField");
       const idField = select("#mentorIdField");
@@ -369,6 +494,7 @@ function bindMentorButtons() {
 function bindProjectButtons() {
   selectAll("[data-project]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (!requireStudent("Please register/login via the Join form before joining a project.")) return;
       const modal = select("#projectModal");
       const titleField = select("#projectTitleField");
       const idField = select("#projectIdField");
@@ -430,28 +556,22 @@ function handleJoinForm() {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     status.textContent = "Sending...";
-    const formData = Object.fromEntries(new FormData(form).entries());
-    // Route into requests as a generic project request
-    const payload = {
-      project_title: `Community (${formData.role || "Participant"})`,
-      student_name: formData.student_name,
-      email: formData.email,
-      role: formData.role,
-      faculty: formData.faculty,
-      skills: formData.skills,
-      availability: formData.availability,
-      contact: formData.contact,
-      intro: formData.message,
-    };
-    if (formData.mentor_id) payload.mentor_id = Number(formData.mentor_id);
-    const res = await fetch("/api/join_project", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    status.textContent = data.message || data.status || "Saved.";
-    if (res.ok) form.reset();
+    const fd = new FormData(form);
+    const formData = Object.fromEntries(fd.entries());
+    const email = formData.email || "";
+    const password = formData.password || "";
+    if (!email || !password) {
+      status.textContent = "Email and password are required.";
+      return;
+    }
+    try {
+      await ensureStudentSession(email, password, formData.student_name, null);
+      status.textContent = "Registered and logged in.";
+      return;
+    } catch (err) {
+      status.textContent = err.message;
+      return;
+    }
   });
 }
 
@@ -465,10 +585,31 @@ function renderStudentProfile(data) {
   const container = select("#studentProfile");
   const statusEl = select("#studentLoginStatus");
   if (!container) return;
-  if (!data || !data.requests || !data.requests.length) {
+  studentProfileState = data;
+  setStudentAvatar(data);
+  const allRequests = data?.requests || [];
+  const requests = allRequests.filter(
+    (req) => (req.status || "").toLowerCase() !== "withdrawn"
+  );
+  if (!data || !requests.length) {
     container.innerHTML = '<p class="muted">No requests yet for this email.</p>';
+    updateProjectGate();
     return;
   }
+  const approvedMentors = requests.filter(
+    (req) =>
+      (req.request_type === "mentor" || req.type === "mentor") &&
+      (req.status || "").toLowerCase() === "accepted"
+  );
+  const approvedMentorNames = approvedMentors.map((req) => req.mentor_name || req.project_title || "Mentor");
+  const mentorBadge = approvedMentors.length
+    ? `<div class="card glass" style="margin-bottom:10px;">
+        <p class="tag">Mentor approved</p>
+        <p class="mentor-meta">Assigned mentor${approvedMentorNames.length > 1 ? "s" : ""}: ${approvedMentorNames.join(", ")}</p>
+      </div>`
+    : `<div class="card glass" style="margin-bottom:10px;">
+        <p class="mentor-meta">Awaiting mentor approval. Request a mentor to unlock project submissions.</p>
+      </div>`;
   const summary = `
     <div class="stats" style="margin-bottom: 10px;">
       <div class="stat-card glass">
@@ -480,8 +621,8 @@ function renderStudentProfile(data) {
         <h3>${data.accepted ?? 0}</h3>
       </div>
     </div>
-  `;
-  const cards = data.requests
+  ` + mentorBadge;
+  const cards = requests
     .map((req) => {
       const status = (req.status || "pending").toUpperCase();
       const typeLabel = req.request_type === "mentor" ? "Mentor request" : "Project join";
@@ -508,6 +649,7 @@ function renderStudentProfile(data) {
     .join("");
   container.innerHTML = summary + cards;
   if (statusEl) statusEl.textContent = "";
+  updateProjectGate();
 }
 
 function handleStudentLogin() {
@@ -527,7 +669,9 @@ function handleStudentLogin() {
     const data = await res.json();
     if (status) status.textContent = data.message || data.status || (res.ok ? "Loaded" : "Failed");
     if (res.ok) {
+      setStudentAvatar(data);
       renderStudentProfile(data);
+      updateProjectGate();
     } else if (container) {
       container.innerHTML = "";
     }
@@ -549,6 +693,7 @@ function handleStudentLogin() {
         } catch (_) {
           // ignore
         }
+        updateProjectGate();
         cachedProjects = await fetchJSON("/projects");
         renderProjects(cachedProjects);
         bindProjectButtons();
@@ -563,12 +708,21 @@ function handleStudentForms() {
   const projectForm = select("#studentProjectForm");
   const projectStatus = select("#studentProjectStatus");
   const profile = select("#studentProfile");
+  const avatarButton = select("#studentAvatarButton");
+  const avatarInput = select("#studentAvatarInput");
+  const avatarStatus = select("#studentAvatarStatus");
 
   if (mentorForm) {
     mentorForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (mentorStatus) mentorStatus.textContent = "Sending...";
-      const payload = Object.fromEntries(new FormData(mentorForm).entries());
+      const fd = new FormData(mentorForm);
+      const payload = Object.fromEntries(fd.entries());
+      const photoFile = fd.get("photo");
+      if (photoFile instanceof File && photoFile.size > 0) {
+        payload.photo_data = await fileToBase64(photoFile);
+        payload.photo_name = photoFile.name;
+      }
       if (payload.mentor_id) payload.mentor_id = Number(payload.mentor_id);
       const res = await fetch("/api/join_mentor", {
         method: "POST",
@@ -577,14 +731,53 @@ function handleStudentForms() {
       });
       const data = await res.json();
       if (mentorStatus) mentorStatus.textContent = data.message || data.status || (res.ok ? "Sent" : "Failed");
+      if (res.status === 401) {
+        authGuardMessage(mentorStatus, "Please register/login via the Join form before sending a mentor request.");
+        return;
+      }
       if (res.ok) {
         mentorForm.reset();
         if (profile) {
           try {
             const refreshed = await fetchStudentRequests();
             renderStudentProfile(refreshed);
+            setStudentAvatar(refreshed);
           } catch (_) {}
         }
+      }
+    });
+  }
+
+  if (avatarButton && avatarInput) {
+    avatarButton.addEventListener("click", () => avatarInput.click());
+    avatarInput.addEventListener("change", async () => {
+      if (!avatarInput.files || !avatarInput.files[0]) return;
+      if (avatarStatus) avatarStatus.textContent = "Uploading...";
+      const file = avatarInput.files[0];
+      const payload = {
+        email: studentProfileState?.email || "",
+        photo_name: file.name,
+        photo_data: await fileToBase64(file),
+      };
+      try {
+        const res = await fetch("/api/student/photo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (avatarStatus) avatarStatus.textContent = data.message || "Photo updated.";
+          if (studentProfileState) {
+            studentProfileState.photo = payload.photo_data;
+            studentProfileState.photo_url = payload.photo_data;
+            setStudentAvatar(studentProfileState);
+          }
+        } else {
+          if (avatarStatus) avatarStatus.textContent = data.message || "Upload failed.";
+        }
+      } catch (err) {
+        if (avatarStatus) avatarStatus.textContent = "Upload failed.";
       }
     });
   }
@@ -592,8 +785,18 @@ function handleStudentForms() {
   if (projectForm) {
     projectForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!hasApprovedMentor(studentProfileState?.requests || [])) {
+        if (projectStatus) projectStatus.textContent = "Awaiting mentor approval before submitting a project.";
+        return;
+      }
       if (projectStatus) projectStatus.textContent = "Submitting...";
-      const payload = Object.fromEntries(new FormData(projectForm).entries());
+      const fd = new FormData(projectForm);
+      const payload = Object.fromEntries(fd.entries());
+      const photoFile = fd.get("photo");
+      if (photoFile instanceof File && photoFile.size > 0) {
+        payload.photo_data = await fileToBase64(photoFile);
+        payload.photo_name = photoFile.name;
+      }
       if (payload.mentor_id) payload.mentor_id = Number(payload.mentor_id);
       const res = await fetch("/api/join_project", {
         method: "POST",
@@ -602,12 +805,17 @@ function handleStudentForms() {
       });
       const data = await res.json();
       if (projectStatus) projectStatus.textContent = data.message || data.status || (res.ok ? "Sent" : "Failed");
+      if (res.status === 401) {
+        authGuardMessage(projectStatus, "Please register/login via the Join form before submitting a project.");
+        return;
+      }
       if (res.ok) {
         projectForm.reset();
         if (profile) {
           try {
             const refreshed = await fetchStudentRequests();
             renderStudentProfile(refreshed);
+            setStudentAvatar(refreshed);
           } catch (_) {}
         }
       }
@@ -640,6 +848,17 @@ function addParallax() {
   });
 }
 
+function guardCreateProjectCta() {
+  const cta = select("#createProjectCTA");
+  if (!cta) return;
+  cta.addEventListener("click", (e) => {
+    if (!studentAuthed()) {
+      e.preventDefault();
+      authGuardMessage(null, "Please register/login via the Join form before creating a project.");
+    }
+  });
+}
+
 async function init() {
   hideLoader();
   setupTypewriter();
@@ -653,7 +872,9 @@ async function init() {
   handleJoinForm();
   handleStudentLogin();
   handleStudentForms();
+  preloadStudentSession();
   addParallax();
+  guardCreateProjectCta();
   handleMentorRegisterPage();
 
   cachedProjects = await fetchJSON("/projects");
@@ -724,7 +945,13 @@ function handleMentorRegisterPage() {
     registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (registerStatus) registerStatus.textContent = "Submitting...";
-      const payload = Object.fromEntries(new FormData(registerForm).entries());
+      const fd = new FormData(registerForm);
+      const payload = Object.fromEntries(fd.entries());
+      const photoFile = fd.get("photo");
+      if (photoFile instanceof File && photoFile.size > 0) {
+        payload.photo_data = await fileToBase64(photoFile);
+        payload.photo_name = photoFile.name;
+      }
       const res = await fetch("/api/add_mentor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

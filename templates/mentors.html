@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+
 <section class="page-header">
   <div>
     <p class="tag">Mentor Network</p>
@@ -13,34 +14,87 @@
   <div id="mentorGrid" class="card-grid"></div>
 </section>
 
-<div id="mentorModal" class="modal hidden">
-  <div class="modal-content">
+<div id="mentorModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-content mentor-modal-shell">
     <button class="close-btn" data-close-modal aria-label="Close">x</button>
-    <h3>Request Mentorship</h3>
-    <form id="mentorForm">
-      <div class="form-group">
-        <label>Mentor</label>
-        <input type="text" name="mentor_name" id="mentorNameField" readonly>
+    <div class="mentor-modal">
+      <div class="mentor-hero-pane">
+        <div class="mentor-hero-content">
+          <p class="eyebrow" style="letter-spacing: 2px; text-transform: uppercase;">Mentor Match</p>
+          <h3>Hello, Welcome!</h3>
+          <p>Tell us your project interests and we will connect you with the right mentor.</p>
+          <button class="ghost-btn" type="button" data-close-modal>Back to mentors</button>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Student name</label>
-        <input type="text" name="student_name" required>
+      <div class="mentor-form-pane">
+        <h3>Request Mentorship</h3>
+        <p class="subtext">All fields help mentors respond faster.</p>
+        <form id="mentorForm" class="mentor-form">
+          <input type="hidden" name="mentor_id" id="mentorIdField">
+          <div class="input-field">
+            <label for="mentorNameField">Mentor</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>
+                </svg>
+              </span>
+              <input type="text" name="mentor_name" id="mentorNameField" readonly>
+            </div>
+          </div>
+          <div class="input-field">
+            <label for="studentNameField">Student name</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>
+                </svg>
+              </span>
+              <input id="studentNameField" type="text" name="student_name" required placeholder="Your name">
+            </div>
+          </div>
+          <div class="input-field">
+            <label for="mentorEmailField">Email</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M3 5h18v14H3z"></path>
+                  <path d="M3 7l9 6 9-6"></path>
+                </svg>
+              </span>
+              <input id="mentorEmailField" type="email" name="email" required placeholder="you@example.com">
+            </div>
+          </div>
+          <div class="input-field">
+            <label for="interestField">Project or research interest</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 3v18"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+              </span>
+              <input id="interestField" type="text" name="interest" required placeholder="AI, Robotics, Energy...">
+            </div>
+          </div>
+          <div class="input-field">
+            <label for="mentorMessage">Message</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M4 4h16v12H5.17L4 17.17z"></path>
+                </svg>
+              </span>
+              <textarea id="mentorMessage" name="message" rows="3" placeholder="What do you hope to achieve?"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="cta-button primary full">Send Request</button>
+          <p class="form-status" id="mentorStatus"></p>
+        </form>
       </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" name="email" required>
-      </div>
-      <div class="form-group">
-        <label>Project or research interest</label>
-        <input type="text" name="interest" required>
-      </div>
-      <div class="form-group">
-        <label>Message</label>
-        <textarea name="message" rows="3" placeholder="What do you hope to achieve?"></textarea>
-      </div>
-      <button type="submit" class="cta-button primary full">Send Request</button>
-      <p class="form-status" id="mentorStatus"></p>
-    </form>
+    </div>
   </div>
 </div>
 {% endblock %}

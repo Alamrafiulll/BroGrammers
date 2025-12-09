@@ -55,7 +55,7 @@
         <h3>Launch your own collaboration</h3>
         <p class="lede">Propose a new project, find teammates, and get mentor feedback fast.</p>
       </div>
-      <a class="cta-button primary glow" href="#join">Create your project</a>
+      <a class="cta-button primary glow" href="#join" data-requires-student="true" id="createProjectCTA">Create your project</a>
     </div>
   </div>
 </section>
@@ -67,20 +67,7 @@
     <p class="lede">Tell us who you are and we will route you to a mentor or project lead.</p>
   </div>
   <div class="join-card glass">
-    <div class="join-card glass" style="margin-bottom: 12px;">
-      <h4>My STEM profile</h4>
-      <p class="muted">Enter your email to see your requests and withdraw if needed.</p>
-      <form id="studentLoginForm" class="join-form" style="gap: 8px;">
-        <div class="form-group">
-          <label for="studentEmail">Email</label>
-          <input id="studentEmail" name="email" type="email" required>
-        </div>
-        <button type="submit" class="cta-button outline full">View my activity</button>
-        <p class="form-status" id="studentLoginStatus"></p>
-      </form>
-      <div id="studentProfile" class="card-list" style="margin-top: 8px;"></div>
-    </div>
-    <form id="joinForm" class="join-form">
+      <form id="joinForm" class="join-form">
       <div class="form-group">
         <label for="joinName">Full Name</label>
         <input id="joinName" name="student_name" type="text" required>
@@ -90,12 +77,14 @@
         <input id="joinEmail" name="email" type="email" required>
       </div>
       <div class="form-group">
+        <label for="joinPassword">Password</label>
+        <input id="joinPassword" name="password" type="password" required placeholder="Create a student portal password">
+      </div>
+      <div class="form-group">
         <label for="joinRole">Role</label>
         <select id="joinRole" name="role" required>
           <option value="">Select</option>
           <option value="Student">Student</option>
-          <option value="Mentor">Mentor</option>
-          <option value="Alumni">Alumni</option>
         </select>
       </div>
       <div class="form-group">
@@ -136,8 +125,8 @@
         </select>
       </div>
       <div class="form-group">
-        <label for="joinContact">Contact link / handle</label>
-        <input id="joinContact" name="contact" type="text" placeholder="LinkedIn, GitHub, Telegram, etc.">
+        <label for="joinContact">WhatsApp number</label>
+        <input id="joinContact" name="contact" type="text" placeholder="e.g., +60 12****789">
       </div>
       <div class="form-group">
         <label for="joinMessage">Message</label>

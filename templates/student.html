@@ -20,13 +20,56 @@
           <input type="email" name="email" required>
         </div>
         <div class="form-group">
-          <label>Name (optional)</label>
-          <input type="text" name="student_name" placeholder="Your name">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="Your student portal password">
         </div>
         <button class="cta-button primary" type="submit">View my requests</button>
       </form>
     </div>
   {% else %}
+    {% set active_requests = (requests | default([])) | rejectattr('status', 'equalto', 'withdrawn') | list %}
+    {% set approved_mentors = active_requests | selectattr('request_type', 'equalto', 'mentor') | selectattr('status', 'equalto', 'accepted') | list %}
+    {% set pending_mentors = active_requests | selectattr('request_type', 'equalto', 'mentor') | rejectattr('status', 'equalto', 'accepted') | list %}
+    {% set project_reqs = active_requests | rejectattr('request_type', 'equalto', 'mentor') | list %}
+    {% set pending_projects = project_reqs | rejectattr('status', 'equalto', 'accepted') | list %}
+    {% set accepted_projects = project_reqs | selectattr('status', 'equalto', 'accepted') | list %}
+
+    <div class="card glass student-summary">
+      <div class="student-avatar-wrap">
+        <div class="student-avatar" id="studentAvatar" data-initial="{{ (student_name or student_email or 'S')[0]|upper }}">
+          {% if not student_photo %}
+            <span class="student-avatar-initial">{{ (student_name or student_email or 'S')[0]|upper }}</span>
+          {% endif %}
+          {% if student_photo %}
+            <img src="{{ student_photo }}" alt="Profile photo">
+          {% endif %}
+        </div>
+        <form id="studentAvatarForm" class="avatar-upload" novalidate>
+          <input type="file" id="studentAvatarInput" name="photo" accept="image/*" hidden>
+          <button type="button" class="cta-button outline" id="studentAvatarButton">Upload photo</button>
+          <p class="form-status" id="studentAvatarStatus"></p>
+        </form>
+      </div>
+      <div class="student-summary-details">
+        <div class="stats" style="margin: 0;">
+          <div class="stat-card glass">
+            <p class="label">Mentor requests</p>
+            <h3>{{ requests | default([]) | selectattr('request_type','equalto','mentor') | list | length }}</h3>
+          </div>
+          <div class="stat-card glass">
+            <p class="label">Project requests</p>
+            <h3>{{ project_reqs | length }}</h3>
+          </div>
+        </div>
+        {% if approved_mentors|length %}
+          <p class="tag">Mentor approved</p>
+          <p class="mentor-meta">Assigned mentor{% if approved_mentors|length > 1 %}s{% endif %}: {{ approved_mentors | map(attribute='mentor_name') | join(', ') }}</p>
+        {% else %}
+          <p class="mentor-meta">Awaiting mentor approval. Request a mentor to unlock project submissions.</p>
+        {% endif %}
+      </div>
+    </div>
+
     <div class="stats">
       <div class="stat-card glass">
         <p class="label">Pending requests</p>
@@ -44,13 +87,13 @@
 
     <div class="hero-actions" style="margin-bottom: 12px;">
       <a class="cta-button outline" href="{{ url_for('student_logout') }}">Logout</a>
-      <a class="cta-button" href="{{ url_for('stem_page') }}">Back to STEM</a>
     </div>
 
     <div id="studentProfile" data-student-email="{{ student_email }}" data-student-name="{{ student_name or '' }}">
-      {% if requests %}
+      {% if active_requests %}
+        <h4 style="margin-top: 0;">Pending & approved requests</h4>
         <div class="mentor-grid">
-          {% for req in requests %}
+          {% for req in active_requests %}
           <article class="mentor-card tilt-card">
             <div class="mentor-info">
               <h4>{{ req.project_title or req.mentor_name or "Request" }}</h4>
@@ -58,6 +101,12 @@
             </div>
             <p class="mentor-desc">{{ req.message or req.intro or req.interest or "No details provided." }}</p>
             <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+            {% if req.mentor_name %}
+              <p class="mentor-meta">Mentor: {{ req.mentor_name }}</p>
+            {% endif %}
+            {% if req.team_members %}
+              <p class="mentor-meta">Team: {{ req.team_members }}</p>
+            {% endif %}
             {% if req.status not in ["withdrawn", "rejected", "project_deleted"] %}
             <form method="post" action="{{ url_for('student_withdraw_request', req_id=req.id) }}">
               <button class="cta-button outline" type="submit">Withdraw</button>
@@ -69,6 +118,79 @@
       {% else %}
         <p class="muted">No requests yet. Use the forms below to connect with mentors or submit a project.</p>
       {% endif %}
+
+      <div class="join-card glass" style="margin-top: 12px;">
+        <h4>Pending mentor requests</h4>
+        {% if pending_mentors|length %}
+          <div class="mentor-grid">
+            {% for req in pending_mentors %}
+              <article class="mentor-card tilt-card">
+                <div class="mentor-info">
+                  <h4>{{ req.mentor_name or "Mentor" }}</h4>
+                  <p class="mentor-meta">{{ req.email }}</p>
+                </div>
+                <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+                <form method="post" action="{{ url_for('student_withdraw_request', req_id=req.id) }}">
+                  <button class="cta-button outline" type="submit">Withdraw</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No pending mentor requests.</p>
+        {% endif %}
+      </div>
+
+      <div class="join-card glass" style="margin-top: 12px;">
+        <h4>Pending project requests</h4>
+        {% if pending_projects|length %}
+          <div class="mentor-grid">
+            {% for req in pending_projects %}
+              <article class="mentor-card tilt-card">
+                <div class="mentor-info">
+                  <h4>{{ req.project_title or "Project" }}</h4>
+                  <p class="mentor-meta">{{ req.email }}</p>
+                </div>
+                <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+                <form method="post" action="{{ url_for('student_withdraw_request', req_id=req.id) }}">
+                  <button class="cta-button outline" type="submit">Withdraw</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No pending project requests.</p>
+        {% endif %}
+      </div>
+
+      <div class="join-card glass" style="margin-top: 12px;">
+        <h4>Accepted mentor / project</h4>
+        {% if approved_mentors|length or accepted_projects|length %}
+          <div class="mentor-grid">
+            {% for req in approved_mentors %}
+              <article class="mentor-card tilt-card">
+                <div class="mentor-info">
+                  <h4>{{ req.mentor_name or "Mentor" }}</h4>
+                  <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+                </div>
+              </article>
+            {% endfor %}
+            {% for req in accepted_projects %}
+              <article class="mentor-card tilt-card">
+                <div class="mentor-info">
+                  <h4>{{ req.project_title or "Project" }}</h4>
+                  <p class="mentor-meta">Status: {{ req.status|upper }}</p>
+                  {% if req.team_members %}
+                    <p class="mentor-meta">Team members: {{ req.team_members }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No accepted mentors or projects yet.</p>
+        {% endif %}
+      </div>
     </div>
 
     <div class="join-card glass" style="margin-top: 16px;">
@@ -136,10 +258,18 @@
           <label>Short description</label>
           <textarea name="message" rows="3" placeholder="What will this project do?"></textarea>
         </div>
-        <button class="cta-button primary" type="submit">Submit for approval</button>
+        <button class="cta-button primary" type="submit" {% if approved_mentors|length == 0 %}disabled{% endif %}>Submit for approval</button>
+        <p class="form-status" id="studentProjectGuard">
+          {% if approved_mentors|length == 0 %}
+            Awaiting mentor approval before submitting a project idea.
+          {% else %}
+            Mentor approved. You can submit a project for review.
+          {% endif %}
+        </p>
         <p class="form-status" id="studentProjectStatus"></p>
       </form>
     </div>
+
   {% endif %}
 </section>
 {% endblock %}

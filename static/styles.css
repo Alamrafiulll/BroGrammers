@@ -505,7 +505,7 @@ main {
   font-size: clamp(26px, 4vw, 36px);
   font-weight: bold;     
   color: var(--muted);    
-}=
+}
 
 .section-heading h2 {
   color: var(--muted);
@@ -764,7 +764,6 @@ main {
 .story-card:nth-child(6).pop { animation-delay: 0.4s; }
 
 .story-card:hover {
-<<<<<<< HEAD
   transform: translateZ(60px) scale(1.12);
   box-shadow: 0 28px 80px rgba(14, 71, 196, 0.45);
   border-color: rgba(182, 18, 59, 0.45);
@@ -845,87 +844,6 @@ main {
   letter-spacing: 0.2px;
 }
 
-=======
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 24px 70px rgba(14, 71, 196, 0.35);
-  border-color: rgba(182, 18, 59, 0.35);
-}
-
-.story-top {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 6px;
-  position: relative;
-  z-index: 1;
-}
-
-.story-ribbon {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #0f2bb6, #1c75ff);
-  color: #e8efff;
-  font-size: 11px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  font-weight: 700;
-  box-shadow: 0 8px 24px rgba(0, 51, 160, 0.35);
-}
-
-.story-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-  z-index: 1;
-}
-
-.story-avatar {
-  width: 78px;
-  height: 78px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(14, 71, 196, 0.5), rgba(182, 18, 59, 0.5));
-  padding: 4px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-  transform: scale(0.82);
-  opacity: 0.9;
-  transition: transform 0.35s ease;
-  position: relative;
-}
-
-.story-avatar img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.story-badge {
-  position: absolute;
-  bottom: -6px;
-  right: -6px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #ff7ac3, #b6123b);
-  color: #fff;
-  font-size: 13px;
-  box-shadow: 0 10px 24px rgba(182, 18, 59, 0.4);
-  border: 2px solid #0b1426;
-}
-
-.story-info h4 {
-  margin: 0 0 2px;
-  font-size: 18px;
-  letter-spacing: 0.2px;
-}
-
->>>>>>> 0fd05d76141b389e91dafc4187f88b75f5cda8c7
 .story-info {
   display: flex;
   flex-direction: column;
@@ -1326,5 +1244,333 @@ textarea {
 .story-card:hover .story-avatar {
   transform: scale(1.12) rotate(2deg);
   transition: transform 0.35s ease;
+}
+
+/* Student profile summary */
+.student-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  text-align: center;
+}
+
+.student-summary .stats {
+  margin: 0;
+  justify-content: center;
+}
+
+.student-avatar-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.student-avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f2bb6, #d50032);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(213, 0, 50, 0.55);
+  animation: avatarGlow 4s ease-in-out infinite;
+}
+
+.student-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 1;
+}
+
+.student-avatar-initial {
+  font-weight: 800;
+  color: #fff;
+  font-size: 38px;
+  transition: opacity 0.2s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.student-avatar.has-photo .student-avatar-initial {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.student-summary-details {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+@keyframes avatarGlow {
+  0% {
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 30px rgba(79, 112, 245, 0.45);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(213, 0, 50, 0.55);
+    transform: translateY(-2px);
+  }
+  100% {
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 30px rgba(79, 112, 245, 0.45);
+    transform: translateY(0);
+  }
+}
+
+.avatar-upload .cta-button {
+  padding: 8px 14px;
+}
+
+/* Mentor modal redesign */
+.mentor-modal-shell {
+  --m-blue: #4f70f5;
+  --m-red: #e63950;
+  --m-muted: #6b7280;
+  width: min(1000px, 94vw);
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.mentor-modal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #ffffff;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.mentor-modal .close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  border: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+.mentor-hero-pane {
+  position: relative;
+  padding: clamp(28px, 5vw, 44px);
+  background: linear-gradient(135deg, var(--m-blue), var(--m-red));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.mentor-hero-pane::after {
+  content: "";
+  position: absolute;
+  right: -24%;
+  top: -30%;
+  width: 80%;
+  height: 170%;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(2px);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+
+.mentor-hero-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+}
+
+.mentor-hero-content h3 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+}
+
+.mentor-hero-content p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mentor-hero-content .ghost-btn {
+  justify-self: center;
+  margin-top: 6px;
+}
+
+.ghost-btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.25s ease;
+}
+
+.ghost-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mentor-form-pane {
+  padding: clamp(26px, 4vw, 42px);
+  display: grid;
+  gap: 12px;
+}
+
+.mentor-form-pane h3 {
+  margin: 0 0 6px;
+  font-size: clamp(24px, 3vw, 30px);
+  color: #1f2937;
+}
+
+.mentor-form-pane .subtext {
+  margin: 0 0 10px;
+  color: var(--m-muted);
+}
+
+.mentor-form {
+  display: grid;
+  gap: 14px;
+}
+
+.input-field {
+  display: grid;
+  gap: 6px;
+}
+
+.input-field label {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-shell:focus-within {
+  border-color: var(--m-blue);
+  box-shadow: 0 8px 24px rgba(79, 112, 245, 0.25);
+}
+
+.input-shell input,
+.input-shell textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 12px 12px 44px;
+  font-family: inherit;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.input-shell textarea {
+  padding-top: 14px;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.input-shell input:focus,
+.input-shell textarea:focus {
+  outline: none;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+}
+
+.input-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2px;
+}
+
+.mentor-form .cta-button.primary {
+  background: linear-gradient(135deg, var(--m-blue), var(--m-red));
+  border: none;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  font-weight: 800;
+  box-shadow: 0 16px 40px rgba(79, 112, 245, 0.35);
+}
+
+.mentor-form .cta-button.primary:hover {
+  transform: translateY(-1px);
+}
+
+.mentor-form .form-status {
+  color: var(--m-blue);
+}
+
+@media (max-width: 900px) {
+  .mentor-modal {
+    grid-template-columns: 1fr;
+  }
+  .mentor-hero-pane::after {
+    top: -50%;
+    right: -40%;
+  }
+}
+
+/* Mentor registration layout */
+/* removed mentor auth experiment */
+
+/* Developer cards (contact page) */
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.dev-card {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.dev-photo img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.dev-info h4 {
+  margin: 0 0 6px;
+  word-break: break-word;
+}
+
+.dev-info .mentor-meta {
+  word-break: break-word;
 }
 

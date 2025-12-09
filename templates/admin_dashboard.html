@@ -12,6 +12,36 @@
     <a class="cta-button" href="{{ url_for('home') }}">Back to Home</a>
   </div>
 
+  <h4>Students</h4>
+  {% if students %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Email</th><th>Photo</th><th>Created</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>{{ s.name or "Student" }}</td>
+          <td>{{ s.email }}</td>
+          <td>{% if s.photo_url %}<a href="{{ s.photo_url }}" target="_blank">View</a>{% else %}-{% endif %}</td>
+          <td>{{ s.created_at.strftime('%Y-%m-%d') if s.created_at else '' }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_delete_student', student_id=s.id) }}" onsubmit="return confirm('Remove this student?');" style="display: inline;">
+              <button class="cta-button outline" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="muted">No students found.</p>
+  {% endif %}
+
   <h4>Pending</h4>
   {% if pending %}
   <div class="table-wrap">

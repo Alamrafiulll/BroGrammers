@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import base64
 import json
+import os
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-import os
-from flask import Flask, jsonify, render_template, request, redirect, session, url_for
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for, current_app
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 from sqlalchemy.exc import OperationalError
-import time
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -18,6 +20,7 @@ BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DB_FILE = DATA_DIR / "app.db"
 PROJECTS_FILE = DATA_DIR / "projects.json"
+STUDENT_UPLOAD_DIR = BASE_DIR / "static" / "uploads" / "students"
 
 DEFAULT_PROJECTS: List[Dict[str, Any]] = [
     {
@@ -37,6 +40,24 @@ DEFAULT_PROJECTS: List[Dict[str, Any]] = [
 db = SQLAlchemy()
 
 
+class Student(db.Model):
+    __tablename__ = "students"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200))
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    photo_url = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def set_password(self, raw: str) -> None:
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw: str) -> bool:
+        return check_password_hash(self.password_hash, raw)
+
+
 class Mentor(db.Model):
     __tablename__ = "mentors"
 
@@ -50,6 +71,10 @@ class Mentor(db.Model):
     access_code_hash = db.Column(db.String(255))
     status = db.Column(db.String(20), default="pending")  # pending/approved/rejected
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    workshop_title = db.Column(db.String(200), default="")
+    workshop_description = db.Column(db.Text, default="")
+    workshop_image = db.Column(db.String(500), default="")
+    workshop_links = db.Column(db.Text, default="")
     requests = db.relationship("JoinRequest", back_populates="mentor", lazy="dynamic")
 
     def to_dict(self) -> Dict[str, Any]:
@@ -66,6 +91,10 @@ class Mentor(db.Model):
             "pending_requests": pending,
             "total_requests": total,
             "created_at": self.created_at.isoformat(),
+            "workshop_title": self.workshop_title,
+            "workshop_description": self.workshop_description,
+            "workshop_image": self.workshop_image,
+            "workshop_links": self.workshop_links,
         }
 
 
@@ -218,6 +247,18 @@ def student_requests(email: str) -> List[JoinRequest]:
     )
 
 
+def save_student_photo(photo_data: str) -> str:
+    """Save base64-encoded photo to static/uploads/students and return relative URL."""
+    header, b64data = photo_data.split(",", 1) if "," in photo_data else ("", photo_data)
+    raw = base64.b64decode(b64data)
+    STUDENT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.png"
+    dest = STUDENT_UPLOAD_DIR / filename
+    with open(dest, "wb") as f:
+        f.write(raw)
+    return f"/static/uploads/students/{filename}"
+
+
 def init_database(app: Flask) -> None:
     """Configure and initialize the SQLite database."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -266,6 +307,10 @@ def upgrade_schema() -> None:
     add_column_if_missing("mentors", "email", "TEXT")
     add_column_if_missing("mentors", "access_code_hash", "TEXT")
     add_column_if_missing("mentors", "status", "TEXT DEFAULT 'pending'")
+    add_column_if_missing("mentors", "workshop_title", "TEXT")
+    add_column_if_missing("mentors", "workshop_description", "TEXT")
+    add_column_if_missing("mentors", "workshop_image", "TEXT")
+    add_column_if_missing("mentors", "workshop_links", "TEXT")
     add_column_if_missing("requests", "status", "TEXT DEFAULT 'pending'")
     add_column_if_missing("requests", "mentor_id", "INTEGER")
     add_column_if_missing("requests", "project_id", "INTEGER")
@@ -273,6 +318,7 @@ def upgrade_schema() -> None:
 
     # backfill null statuses to pending for older rows
     db.session.execute(text("UPDATE requests SET status = 'pending' WHERE status IS NULL"))
+    db.session.execute(text("UPDATE mentors SET status = 'pending' WHERE status IS NULL OR status = ''"))
     db.session.commit()
 
 
@@ -333,6 +379,7 @@ def create_app() -> Flask:
     def student_portal() -> Any:
         student_email = session.get("student_email")
         student_name = session.get("student_name", "")
+        student_photo = None
         status_message = None
         if request.method == "POST":
             student_email = normalize_email(request.form.get("email"))
@@ -344,6 +391,12 @@ def create_app() -> Flask:
             else:
                 status_message = "Email is required to view your activity."
         requests_rows = student_requests(student_email) if student_email else []
+        student_row = Student.query.filter(func.lower(Student.email) == normalize_email(student_email)).first() if student_email else None
+        if student_row:
+            student_photo = student_row.photo_url
+            if not student_name and student_row.name:
+                student_name = student_row.name
+                session["student_name"] = student_name
         if not student_name and requests_rows:
             student_name = requests_rows[0].student_name or ""
             session["student_name"] = student_name
@@ -354,6 +407,7 @@ def create_app() -> Flask:
             "student.html",
             student_email=student_email,
             student_name=student_name,
+            student_photo=student_photo,
             requests=requests_rows,
             pending=pending,
             accepted=accepted,
@@ -388,11 +442,13 @@ def create_app() -> Flask:
         pending = Mentor.query.filter_by(status="pending").order_by(Mentor.created_at.desc()).all()
         approved = Mentor.query.filter_by(status="approved").order_by(Mentor.created_at.desc()).all()
         rejected = Mentor.query.filter_by(status="rejected").order_by(Mentor.created_at.desc()).all()
+        students = Student.query.order_by(Student.created_at.desc()).all()
         return render_template(
             "admin_dashboard.html",
             pending=pending,
             approved=approved,
             rejected=rejected,
+            students=students,
         )
 
     @app.route("/admin/mentors/<int:mentor_id>/<action>", methods=["POST"])
@@ -420,6 +476,19 @@ def create_app() -> Flask:
         if mentor:
             try:
                 db.session.delete(mentor)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/students/<int:student_id>/delete", methods=["POST"])
+    def admin_delete_student(student_id: int) -> Any:
+        if not session.get("is_admin"):
+            return redirect(url_for("admin_login"))
+        student = Student.query.filter_by(id=student_id).first()
+        if student:
+            try:
+                db.session.delete(student)
                 db.session.commit()
             except Exception:
                 db.session.rollback()
@@ -482,6 +551,10 @@ def create_app() -> Flask:
         photo = payload.get("photo", "").strip()
         email = payload.get("email", "").strip().lower()
         access_code = payload.get("access_code", "").strip()
+        workshop_title = payload.get("workshop_title", "").strip()
+        workshop_description = payload.get("workshop_description", "").strip()
+        workshop_image = payload.get("workshop_image", "").strip()
+        workshop_links = payload.get("workshop_links", "").strip()
 
         if not (name and field and description and email and access_code):
             return jsonify({"status": "error", "message": "Missing required mentor info."}), 400
@@ -498,6 +571,10 @@ def create_app() -> Flask:
             email=email,
             access_code_hash=generate_password_hash(access_code),
             status="pending",
+            workshop_title=workshop_title,
+            workshop_description=workshop_description,
+            workshop_image=workshop_image,
+            workshop_links=workshop_links,
         )
 
         try:
@@ -520,8 +597,10 @@ def create_app() -> Flask:
         payload = request.get_json(force=True) or {}
         mentor_name = payload.get("mentor_name", "").strip()
         mentor_id = payload.get("mentor_id")
-        student_name = payload.get("student_name", "").strip()
-        email = normalize_email(payload.get("email", ""))
+        email = session.get("student_email")
+        if not email:
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        student_name = session.get("student_name", "").strip() or payload.get("student_name", "").strip()
         interest = payload.get("interest", "").strip()
         message = payload.get("message", "").strip()
 
@@ -562,8 +641,10 @@ def create_app() -> Flask:
         payload = request.get_json(force=True) or {}
         project_title = payload.get("project_title", "").strip()
         project_id_raw = payload.get("project_id")
-        student_name = payload.get("student_name", "").strip()
-        email = normalize_email(payload.get("email", ""))
+        email = session.get("student_email")
+        if not email:
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        student_name = session.get("student_name", "").strip() or payload.get("student_name", "").strip()
         role = payload.get("role", "").strip()
         faculty = payload.get("faculty", "").strip()
         skills = payload.get("skills", "").strip()
@@ -659,25 +740,34 @@ def create_app() -> Flask:
 
     @app.route("/api/mentor/requests/<int:req_id>/decision", methods=["POST"])
     def mentor_decision(req_id: int) -> Any:
-        payload = request.get_json(force=True) or {}
-        action = payload.get("action", "").strip().lower()
+        payload = request.get_json(silent=True) or request.form.to_dict() or {}
+        action = (payload.get("action") or "").strip().lower()
         if action not in {"accepted", "rejected"}:
-            return jsonify({"status": "error", "message": "Action must be accepted or rejected."}), 400
+            return (
+                jsonify({"status": "error", "message": "Action must be accepted or rejected."}),
+                400,
+            )
 
         mentor = None
         # Prefer session auth if available
         if session.get("mentor_id"):
             mentor = Mentor.query.filter_by(id=session["mentor_id"]).first()
         if mentor is None:
-            email = payload.get("email", "").strip().lower()
-            access_code = payload.get("access_code", "").strip()
+            email = (payload.get("email") or "").strip().lower()
+            access_code = (payload.get("access_code") or "").strip()
             mentor = authenticate_mentor(email, access_code)
         if mentor is None:
-            return jsonify({"status": "error", "message": "Invalid mentor credentials."}), 401
+            return (
+                jsonify({"status": "error", "message": "Invalid mentor credentials."}),
+                401,
+            )
 
         req_row = JoinRequest.query.filter_by(id=req_id, mentor_id=mentor.id).first()
         if req_row is None:
-            return jsonify({"status": "error", "message": "Request not found for this mentor."}), 404
+            return (
+                jsonify({"status": "error", "message": "Request not found for this mentor."}),
+                404,
+            )
 
         req_row.status = action
         created_project: Project | None = None
@@ -720,6 +810,9 @@ def create_app() -> Flask:
             db.session.rollback()
             return jsonify({"status": "error", "message": "Failed to update request."}), 500
 
+        # For browsers posting a form, redirect back to dashboard; JSON clients get API data.
+        if not request.is_json:
+            return redirect(url_for("mentor_dashboard"))
         response = {"status": "success", "request": req_row.to_dict()}
         if created_project:
             response["project"] = created_project.to_dict()
@@ -914,21 +1007,54 @@ def create_app() -> Flask:
         payload = request.get_json(force=True) or {}
         email = normalize_email(payload.get("email"))
         student_name = payload.get("student_name", "").strip()
-        if not email:
-            return jsonify({"status": "error", "message": "Email is required."}), 400
+        password = payload.get("password", "").strip()
+        photo_data = payload.get("photo_data")
+        if not (email and password):
+            return jsonify({"status": "error", "message": "Email and password are required."}), 400
+
+        student = Student.query.filter(func.lower(Student.email) == email).first()
+        created = False
+        if student is None:
+            student = Student(email=email, name=student_name or email.split("@")[0])
+            student.set_password(password)
+            if photo_data:
+                try:
+                    student.photo_url = save_student_photo(photo_data)
+                except Exception:
+                    pass
+            db.session.add(student)
+            created = True
+        else:
+            if not student.check_password(password):
+                return jsonify({"status": "error", "message": "Invalid credentials."}), 401
+            if student_name:
+                student.name = student_name
+            if photo_data:
+                try:
+                    student.photo_url = save_student_photo(photo_data)
+                except Exception:
+                    pass
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to save student."}), 500
+
         session["student_email"] = email
-        if student_name:
-            session["student_name"] = student_name
+        session["student_name"] = student.name or student_name or ""
         requests_rows = student_requests(email)
         if not student_name and requests_rows:
             student_name = requests_rows[0].student_name or ""
+            session["student_name"] = student_name
         pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
         accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
         return jsonify(
             {
                 "status": "success",
                 "email": email,
-                "student_name": student_name,
+                "student_name": student.name or student_name,
+                "photo_url": student.photo_url,
+                "created": created,
                 "pending": pending,
                 "accepted": accepted,
                 "requests": [r.to_dict() for r in requests_rows],
@@ -942,6 +1068,7 @@ def create_app() -> Flask:
             return jsonify({"status": "error", "message": "Not authenticated."}), 401
         requests_rows = student_requests(email)
         student_name = session.get("student_name") or (requests_rows[0].student_name if requests_rows else "")
+        student_row = Student.query.filter(func.lower(Student.email) == normalize_email(email)).first()
         pending = sum(1 for r in requests_rows if (r.status or "pending") == "pending")
         accepted = sum(1 for r in requests_rows if (r.status or "").lower() == "accepted")
         return jsonify(
@@ -949,6 +1076,7 @@ def create_app() -> Flask:
                 "status": "success",
                 "email": email,
                 "student_name": student_name,
+                "photo_url": student_row.photo_url if student_row else None,
                 "pending": pending,
                 "accepted": accepted,
                 "requests": [r.to_dict() for r in requests_rows],
@@ -959,18 +1087,33 @@ def create_app() -> Flask:
     def student_withdraw_request(req_id: int) -> Any:
         email = session.get("student_email")
         if not email:
-            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+            return (
+                redirect(url_for("student_portal"))
+                if "text/html" in request.headers.get("Accept", "")
+                else (jsonify({"status": "error", "message": "Not authenticated."}), 401)
+            )
         req_obj = JoinRequest.query.filter(
             JoinRequest.id == req_id, func.lower(JoinRequest.email) == email
         ).first()
         if req_obj is None:
-            return jsonify({"status": "error", "message": "Request not found."}), 404
+            return (
+                redirect(url_for("student_portal"))
+                if "text/html" in request.headers.get("Accept", "")
+                else (jsonify({"status": "error", "message": "Request not found."}), 404)
+            )
         req_obj.status = "withdrawn"
         try:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            return jsonify({"status": "error", "message": "Failed to withdraw request."}), 500
+            return (
+                redirect(url_for("student_portal"))
+                if "text/html" in request.headers.get("Accept", "")
+                else (jsonify({"status": "error", "message": "Failed to withdraw request."}), 500)
+            )
+        # If the request came from a browser navigation, send them back to the student portal.
+        if "text/html" in request.headers.get("Accept", ""):
+            return redirect(url_for("student_portal"))
         return jsonify({"status": "success", "request": req_obj.to_dict()})
 
     @app.route("/student/withdraw/<int:req_id>", methods=["POST"])
@@ -988,6 +1131,25 @@ def create_app() -> Flask:
             except Exception:
                 db.session.rollback()
         return redirect(url_for("student_portal"))
+
+    @app.route("/api/student/photo", methods=["POST"])
+    def student_photo_upload() -> Any:
+        payload = request.get_json(force=True) or {}
+        email = normalize_email(payload.get("email") or session.get("student_email"))
+        photo_data = payload.get("photo_data")
+        if not (email and photo_data):
+            return jsonify({"status": "error", "message": "Email and photo_data required."}), 400
+        student = Student.query.filter(func.lower(Student.email) == email).first()
+        if student is None:
+            return jsonify({"status": "error", "message": "Student not found."}), 404
+        try:
+            photo_url = save_student_photo(photo_data)
+            student.photo_url = photo_url
+            db.session.commit()
+            return jsonify({"status": "success", "photo_url": photo_url, "message": "Photo updated."})
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Upload failed."}), 500
 
     @app.route("/mentor/dashboard")
     def mentor_dashboard() -> Any:
