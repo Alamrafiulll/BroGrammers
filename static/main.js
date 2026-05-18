@@ -876,6 +876,7 @@ async function init() {
   addParallax();
   guardCreateProjectCta();
   handleMentorRegisterPage();
+  initChatWidget();
 
   cachedProjects = await fetchJSON("/projects");
   renderProjects(cachedProjects);
@@ -1016,8 +1017,289 @@ function handleMentorRegisterPage() {
         return;
       }
       if (loginStatus) loginStatus.textContent = `Request ${action}.`;
-      // Refresh dashboard
       await loadMentorRequests(lastLogin);
     });
   }
+}
+
+
+
+// ----------------------
+// Floating Chat Widget
+// ----------------------
+function initChatWidget() {
+  const toggleBtn = select("#chatToggleBtn");
+  const popup = select("#chatPopup");
+  const closeBtn = select("#chatCloseBtn");
+  const chatForm = select("#chatForm");
+  const chatInput = select("#chatInput");
+  const chatMessages = select("#chatMessages");
+  const badge = select("#chatBadge");
+
+  if (!toggleBtn || !popup) return;
+
+  let isOpen = false;
+
+  // --- Drag support ---
+  let isDragging = false;
+  let dragStarted = false;
+  let startX = 0, startY = 0;
+  let fabX = 0, fabY = 0;
+  const DRAG_THRESHOLD = 5;
+
+  // Restore saved position
+  function restorePosition() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("chatFabPos"));
+      if (saved && typeof saved.x === "number" && typeof saved.y === "number") {
+        fabX = Math.min(saved.x, window.innerWidth - 70);
+        fabY = Math.min(saved.y, window.innerHeight - 70);
+        fabX = Math.max(0, fabX);
+        fabY = Math.max(0, fabY);
+      } else {
+        fabX = window.innerWidth - 88;
+        fabY = 80;
+      }
+    } catch (_) {
+      fabX = window.innerWidth - 88;
+      fabY = 80;
+    }
+    applyPosition();
+  }
+
+  function applyPosition() {
+    toggleBtn.style.left = fabX + "px";
+    toggleBtn.style.top = fabY + "px";
+    toggleBtn.style.right = "auto";
+  }
+
+  function savePosition() {
+    try {
+      localStorage.setItem("chatFabPos", JSON.stringify({ x: fabX, y: fabY }));
+    } catch (_) {}
+  }
+
+  function positionPopup() {
+    const fabRect = toggleBtn.getBoundingClientRect();
+    const popW = 370;
+    const popH = 520;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Determine if popup should go below or above
+    let popTop, popLeft;
+    const spaceBelow = vh - fabRect.bottom - 12;
+    const spaceAbove = fabRect.top - 12;
+
+    if (spaceBelow >= popH || spaceBelow >= spaceAbove) {
+      popTop = fabRect.bottom + 12;
+    } else {
+      popTop = fabRect.top - popH - 12;
+    }
+
+    // Horizontal: try to align right edge with FAB right edge
+    popLeft = fabRect.right - popW;
+    if (popLeft < 8) popLeft = 8;
+    if (popLeft + popW > vw - 8) popLeft = vw - popW - 8;
+
+    // Clamp vertical
+    popTop = Math.max(8, Math.min(popTop, vh - popH - 8));
+
+    popup.style.position = "fixed";
+    popup.style.top = popTop + "px";
+    popup.style.left = popLeft + "px";
+    popup.style.right = "auto";
+    popup.style.bottom = "auto";
+  }
+
+  // Mouse drag
+  toggleBtn.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    dragStarted = false;
+    startX = e.clientX - fabX;
+    startY = e.clientY - fabY;
+    toggleBtn.classList.add("dragging");
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX - fabX;
+    const dy = e.clientY - startY - fabY;
+    if (!dragStarted && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+      dragStarted = true;
+    }
+    if (dragStarted) {
+      fabX = Math.max(0, Math.min(e.clientX - startX, window.innerWidth - 70));
+      fabY = Math.max(0, Math.min(e.clientY - startY, window.innerHeight - 70));
+      applyPosition();
+      if (isOpen) positionPopup();
+    }
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (isDragging) {
+      toggleBtn.classList.remove("dragging");
+      if (dragStarted) {
+        savePosition();
+      }
+      isDragging = false;
+    }
+  });
+
+  // Touch drag
+  toggleBtn.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    isDragging = true;
+    dragStarted = false;
+    startX = touch.clientX - fabX;
+    startY = touch.clientY - fabY;
+    toggleBtn.classList.add("dragging");
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX - fabX;
+    const dy = touch.clientY - startY - fabY;
+    if (!dragStarted && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+      dragStarted = true;
+    }
+    if (dragStarted) {
+      fabX = Math.max(0, Math.min(touch.clientX - startX, window.innerWidth - 70));
+      fabY = Math.max(0, Math.min(touch.clientY - startY, window.innerHeight - 70));
+      applyPosition();
+      if (isOpen) positionPopup();
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener("touchend", () => {
+    if (isDragging) {
+      toggleBtn.classList.remove("dragging");
+      if (dragStarted) {
+        savePosition();
+      }
+      isDragging = false;
+    }
+  });
+
+  // Toggle chat (only if not dragged)
+  toggleBtn.addEventListener("click", (e) => {
+    if (dragStarted) {
+      dragStarted = false;
+      return;
+    }
+    toggleChat();
+  });
+
+  function toggleChat() {
+    isOpen = !isOpen;
+    if (isOpen) {
+      popup.classList.remove("hidden");
+      positionPopup();
+      badge.classList.add("hide");
+      chatInput?.focus();
+      scrollToBottom();
+    } else {
+      popup.classList.add("hidden");
+    }
+  }
+
+  closeBtn?.addEventListener("click", () => {
+    isOpen = false;
+    popup.classList.add("hidden");
+  });
+
+  // Close on clicking outside
+  document.addEventListener("click", (e) => {
+    if (isOpen && !popup.contains(e.target) && !toggleBtn.contains(e.target)) {
+      isOpen = false;
+      popup.classList.add("hidden");
+    }
+  });
+
+  // Reposition on resize
+  window.addEventListener("resize", () => {
+    fabX = Math.min(fabX, window.innerWidth - 70);
+    fabY = Math.min(fabY, window.innerHeight - 70);
+    applyPosition();
+    if (isOpen) positionPopup();
+  });
+
+  function scrollToBottom() {
+    if (chatMessages) {
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 50);
+    }
+  }
+
+  function addMessage(text, type) {
+    const msg = document.createElement("div");
+    msg.className = `chat-msg ${type}`;
+
+    if (type === "bot") {
+      const avatarImg = popup.querySelector(".chat-popup-avatar img");
+      const avatarSrc = avatarImg ? avatarImg.src : "/static/img/bot-avatar.png";
+      msg.innerHTML = `
+        <img src="${avatarSrc}" alt="" class="chat-msg-avatar">
+        <div class="chat-msg-bubble">${text}</div>
+      `;
+    } else {
+      msg.innerHTML = `<div class="chat-msg-bubble">${text}</div>`;
+    }
+
+    chatMessages.appendChild(msg);
+    scrollToBottom();
+  }
+
+  function showTyping() {
+    const typing = document.createElement("div");
+    typing.className = "chat-msg bot";
+    typing.id = "chatTyping";
+    const avatarImg = popup.querySelector(".chat-popup-avatar img");
+    const avatarSrc = avatarImg ? avatarImg.src : "/static/img/bot-avatar.png";
+    typing.innerHTML = `
+      <img src="${avatarSrc}" alt="" class="chat-msg-avatar">
+      <div class="chat-msg-bubble">
+        <div class="chat-typing"><span></span><span></span><span></span></div>
+      </div>
+    `;
+    chatMessages.appendChild(typing);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const typing = select("#chatTyping");
+    if (typing) typing.remove();
+  }
+
+  // Send message
+  chatForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    addMessage(text, "user");
+    chatInput.value = "";
+    showTyping();
+
+    try {
+      const res = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      hideTyping();
+      addMessage(data.reply || "Sorry, I didn't understand that.", "bot");
+    } catch (err) {
+      hideTyping();
+      addMessage("Oops! Something went wrong. Please try again.", "bot");
+    }
+  });
+
+  // Initialize position
+  restorePosition();
 }

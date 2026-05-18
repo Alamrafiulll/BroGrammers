@@ -47,6 +47,47 @@
     </div>
   </footer>
 
+  <!-- Floating Chat Widget -->
+  <div id="chatWidget" class="chat-widget">
+    <!-- Floating Button -->
+    <button id="chatToggleBtn" class="chat-fab" aria-label="Open STEM Bot chat">
+      <img src="{{ url_for('static', filename='img/bot-avatar.png') }}" alt="STEM Bot" class="chat-fab-img">
+      <span class="chat-fab-pulse"></span>
+      <span class="chat-fab-badge" id="chatBadge">1</span>
+    </button>
+
+    <!-- Chat Popup -->
+    <div id="chatPopup" class="chat-popup hidden" role="dialog" aria-label="STEM Bot Chat">
+      <div class="chat-popup-header">
+        <div class="chat-popup-header-left">
+          <div class="chat-popup-avatar">
+            <img src="{{ url_for('static', filename='img/bot-avatar.png') }}" alt="STEM Bot">
+            <span class="chat-popup-online"></span>
+          </div>
+          <div class="chat-popup-header-info">
+            <h4>STEM Bot</h4>
+            <span>Active now</span>
+          </div>
+        </div>
+        <button id="chatCloseBtn" class="chat-popup-close" aria-label="Close chat">&times;</button>
+      </div>
+      <div id="chatMessages" class="chat-popup-messages">
+        <div class="chat-msg bot">
+          <img src="{{ url_for('static', filename='img/bot-avatar.png') }}" alt="" class="chat-msg-avatar">
+          <div class="chat-msg-bubble">
+            👋 Hi! I'm the MMU STEM Bot. Ask me about finding mentors, submitting projects, request statuses, or choosing a STEM area!
+          </div>
+        </div>
+      </div>
+      <form id="chatForm" class="chat-popup-input">
+        <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit" class="chat-send-btn" aria-label="Send">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>

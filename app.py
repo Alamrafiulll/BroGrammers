@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from flask import Flask, jsonify, render_template, request, redirect, session, url_for, current_app
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for, current_app, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 from sqlalchemy.exc import OperationalError
@@ -21,6 +21,8 @@ DATA_DIR = BASE_DIR / "data"
 DB_FILE = DATA_DIR / "app.db"
 PROJECTS_FILE = DATA_DIR / "projects.json"
 STUDENT_UPLOAD_DIR = BASE_DIR / "static" / "uploads" / "students"
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist" / "frontend" / "browser"
+ANGULAR_ROUTES = {"home", "stem-portal", "student-portal", "mentor-portal", "chatbot", "admin-portal"}
 
 DEFAULT_PROJECTS: List[Dict[str, Any]] = [
     {
@@ -348,17 +350,41 @@ def create_app() -> Flask:
     # PAGE ROUTES
     # -----------------
     @app.route("/")
-    def home() -> str:
+    def home() -> Any:
         """
         Main MMU page:
         - Overview, vision/mission, history
         - Live stats: mentors & projects (from SQLite database)
         """
+        if (FRONTEND_DIST / "index.html").exists():
+            return send_from_directory(FRONTEND_DIST, "index.html")
+
         return render_template(
             "index.html",
             mentor_count=Mentor.query.filter_by(status="approved").count(),
             project_count=Project.query.count(),
         )
+
+    @app.route("/assets/<path:filename>")
+    def angular_assets(filename: str) -> Any:
+        if FRONTEND_DIST.exists():
+            return send_from_directory(FRONTEND_DIST / "assets", filename)
+        return "", 404
+
+    @app.route("/favicon.ico")
+    def angular_favicon() -> Any:
+        if (FRONTEND_DIST / "favicon.ico").exists():
+            return send_from_directory(FRONTEND_DIST, "favicon.ico")
+        return "", 404
+
+    @app.route("/<path:filename>")
+    def angular_build_file(filename: str) -> Any:
+        requested_file = FRONTEND_DIST / filename
+        if FRONTEND_DIST.exists() and requested_file.is_file():
+            return send_from_directory(FRONTEND_DIST, filename)
+        if FRONTEND_DIST.exists() and filename in ANGULAR_ROUTES:
+            return send_from_directory(FRONTEND_DIST, "index.html")
+        return "", 404
 
     @app.route("/stem")
     def stem_page() -> str:
@@ -1009,12 +1035,19 @@ def create_app() -> Flask:
         student_name = payload.get("student_name", "").strip()
         password = payload.get("password", "").strip()
         photo_data = payload.get("photo_data")
+        mode = (payload.get("mode") or "").strip().lower()
+        login_only = mode == "login"
+        register_only = mode == "register"
         if not (email and password):
             return jsonify({"status": "error", "message": "Email and password are required."}), 400
 
         student = Student.query.filter(func.lower(Student.email) == email).first()
         created = False
         if student is None:
+            if login_only:
+                return jsonify({"status": "error", "message": "No student account found for this email."}), 401
+            if register_only and not student_name:
+                return jsonify({"status": "error", "message": "Name is required to register."}), 400
             student = Student(email=email, name=student_name or email.split("@")[0])
             student.set_password(password)
             if photo_data:
@@ -1025,6 +1058,8 @@ def create_app() -> Flask:
             db.session.add(student)
             created = True
         else:
+            if register_only:
+                return jsonify({"status": "error", "message": "A student account with this email already exists."}), 400
             if not student.check_password(password):
                 return jsonify({"status": "error", "message": "Invalid credentials."}), 401
             if student_name:
@@ -1151,6 +1186,57 @@ def create_app() -> Flask:
             db.session.rollback()
             return jsonify({"status": "error", "message": "Upload failed."}), 500
 
+    @app.route("/api/chatbot", methods=["POST"])
+    def student_chatbot() -> Any:
+        payload = request.get_json(force=True) or {}
+        question = (payload.get("message") or "").strip()
+        text_value = question.lower()
+
+        mentors_count = Mentor.query.filter_by(status="approved").count()
+        projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
+        project_titles = ", ".join(project.title for project in projects) or "no active projects yet"
+
+        if not question:
+            return jsonify({"reply": "Ask me about mentor requests, project submissions, approvals, or choosing a STEM area."})
+
+        if any(word in text_value for word in ["mentor", "supervisor", "lecturer"]):
+            reply = (
+                f"There are {mentors_count} approved mentors. Sign in as a student, choose a mentor whose field matches "
+                "your interest, then send a short message explaining your goal, skills, and what you want to build."
+            )
+        elif any(word in text_value for word in ["project", "idea", "team", "join"]):
+            reply = (
+                "Project flow: first get one mentor request accepted, then join an existing project or propose a new idea. "
+                f"Current projects include: {project_titles}. Mention your role, skills, availability, and a short build plan."
+            )
+        elif any(word in text_value for word in ["status", "pending", "accepted", "reject", "withdraw"]):
+            reply = (
+                "Request statuses mean: pending is waiting for mentor action, accepted means you can move forward, "
+                "rejected means choose another path, and withdrawn means you cancelled it from your student workspace."
+            )
+        elif any(word in text_value for word in ["ai", "machine learning", "data"]):
+            reply = (
+                "For AI projects, start with a clear problem, a small dataset, a baseline model, and a way to measure success. "
+                "Good student roles include data cleaning, model testing, UI integration, and documentation."
+            )
+        elif any(word in text_value for word in ["iot", "robot", "hardware", "sensor"]):
+            reply = (
+                "For IoT or robotics, define the sensor or actuator, the data flow, and the safety constraints. "
+                "A strong proposal includes hardware list, software stack, testing plan, and team responsibilities."
+            )
+        elif any(word in text_value for word in ["admin", "approve", "registration"]):
+            reply = (
+                "New mentors register first, then admin approves them from the Flask admin dashboard. "
+                "Only approved mentors appear in the student mentor list and can manage requests."
+            )
+        else:
+            reply = (
+                "A good next step is to pick one STEM direction, choose a matching mentor, and write a request with your goal, "
+                "current skills, expected weekly availability, and the first milestone you can complete."
+            )
+
+        return jsonify({"reply": reply})
+
     @app.route("/mentor/dashboard")
     def mentor_dashboard() -> Any:
         if not session.get("mentor_id"):
@@ -1268,6 +1354,108 @@ def create_app() -> Flask:
         except Exception:
             db.session.rollback()
         return redirect(url_for("mentor_dashboard"))
+
+    # -----------------
+    # Admin JSON API (for Angular frontend)
+    # -----------------
+    @app.route("/api/admin/login", methods=["POST"])
+    def api_admin_login() -> Any:
+        payload = request.get_json(force=True) or {}
+        password = payload.get("password", "")
+        if password == app.config["ADMIN_PASSWORD"]:
+            session["is_admin"] = True
+            return jsonify({"status": "success", "message": "Admin authenticated."})
+        return jsonify({"status": "error", "message": "Invalid password."}), 401
+
+    @app.route("/api/admin/data", methods=["GET"])
+    def api_admin_data() -> Any:
+        if not session.get("is_admin"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        pending = Mentor.query.filter_by(status="pending").order_by(Mentor.created_at.desc()).all()
+        approved = Mentor.query.filter_by(status="approved").order_by(Mentor.created_at.desc()).all()
+        rejected = Mentor.query.filter_by(status="rejected").order_by(Mentor.created_at.desc()).all()
+        students_list = Student.query.order_by(Student.created_at.desc()).all()
+        return jsonify({
+            "status": "success",
+            "students": [
+                {
+                    "id": s.id,
+                    "name": s.name or "Student",
+                    "email": s.email,
+                    "photo_url": s.photo_url,
+                    "created_at": s.created_at.isoformat() if s.created_at else "",
+                }
+                for s in students_list
+            ],
+            "pending": [m.to_dict() for m in pending],
+            "approved": [m.to_dict() for m in approved],
+            "rejected": [m.to_dict() for m in rejected],
+        })
+
+    @app.route("/api/admin/mentors/<int:mentor_id>/approve", methods=["POST"])
+    def api_admin_approve_mentor(mentor_id: int) -> Any:
+        if not session.get("is_admin"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=mentor_id).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        mentor.status = "approved"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to approve."}), 500
+        return jsonify({"status": "success", "message": "Mentor approved."})
+
+    @app.route("/api/admin/mentors/<int:mentor_id>/reject", methods=["POST"])
+    def api_admin_reject_mentor(mentor_id: int) -> Any:
+        if not session.get("is_admin"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=mentor_id).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        mentor.status = "rejected"
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to reject."}), 500
+        return jsonify({"status": "success", "message": "Mentor rejected."})
+
+    @app.route("/api/admin/mentors/<int:mentor_id>/delete", methods=["POST"])
+    def api_admin_delete_mentor_api(mentor_id: int) -> Any:
+        if not session.get("is_admin"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        mentor = Mentor.query.filter_by(id=mentor_id).first()
+        if mentor is None:
+            return jsonify({"status": "error", "message": "Mentor not found."}), 404
+        try:
+            db.session.delete(mentor)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to delete."}), 500
+        return jsonify({"status": "success", "message": "Mentor deleted."})
+
+    @app.route("/api/admin/students/<int:student_id>/delete", methods=["POST"])
+    def api_admin_delete_student_api(student_id: int) -> Any:
+        if not session.get("is_admin"):
+            return jsonify({"status": "error", "message": "Not authenticated."}), 401
+        student_obj = Student.query.filter_by(id=student_id).first()
+        if student_obj is None:
+            return jsonify({"status": "error", "message": "Student not found."}), 404
+        try:
+            db.session.delete(student_obj)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "Failed to delete."}), 500
+        return jsonify({"status": "success", "message": "Student deleted."})
+
+    @app.route("/api/admin/logout", methods=["POST"])
+    def api_admin_logout() -> Any:
+        session.pop("is_admin", None)
+        return jsonify({"status": "success", "message": "Logged out."})
 
     return app
 

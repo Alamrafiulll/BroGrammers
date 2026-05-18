@@ -1,0 +1,731 @@
+<main class="shell">
+  <div class="page-grid" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" routerLink="/home">
+      <span class="brand-mark">MMU</span>
+      <span>
+        <small>Multimedia University</small>
+        <strong>Empowering The Future</strong>
+      </span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a routerLink="/home" routerLinkActive="active">Home</a>
+      <a routerLink="/stem-portal" routerLinkActive="active">STEM Portal</a>
+      <a routerLink="/mentor-portal" routerLinkActive="active">Mentor</a>
+      <a class="chatbot-nav-trigger" (click)="toggleChat()">💬 STEM Bot</a>
+      <a routerLink="/admin-portal" routerLinkActive="active">Admin</a>
+    </nav>
+  </header>
+
+  <p class="notice" *ngIf="notice()">{{ notice() }}</p>
+
+  <ng-container [ngSwitch]="currentPage()">
+    <section *ngSwitchCase="'home'" class="page home-page">
+      <div class="hero-band comic-hero">
+        <div class="hero-copy">
+          <div class="comic-badge">⚡ MMU | STEM | Future Builders ⚡</div>
+          <h1 class="comic-title">MMU STEM<br><span class="comic-accent">Portal</span></h1>
+          <p class="comic-subtitle">
+            A focused campus portal for students to discover STEM mentors, join project teams,
+            and move from idea to approved collaboration.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary comic-btn" routerLink="/stem-portal">⚡ Start as Student</a>
+            <a class="button secondary comic-btn" routerLink="/stem-portal">Explore Portal →</a>
+          </div>
+        </div>
+        <div class="hero-visual comic-visual">
+          <div class="thought-bubble" aria-live="polite">
+            <span class="thought-text" [class.thought-fade]="thoughtFading">{{ thoughtMessages[thoughtIndex] }}</span>
+            <div class="thought-puff puff-1"></div>
+            <div class="thought-puff puff-2"></div>
+            <div class="thought-puff puff-3"></div>
+          </div>
+          <div class="comic-mascot-ring">
+            <img src="/assets/ebee-home.png" alt="MMU Ebee mascot" loading="eager" (error)="useMascotFallback($event)">
+          </div>
+        </div>
+      </div>
+
+      <div class="home-overview comic-panels">
+        <article class="summary-card comic-panel">
+          <p class="eyebrow comic-label">⚡ Vision</p>
+          <h2>Build future-ready STEM graduates</h2>
+          <p>Support students with mentor guidance, project-based learning, and practical team experience.</p>
+        </article>
+        <article class="summary-card comic-panel">
+          <p class="eyebrow comic-label">💥 Mission</p>
+          <h2>Connect students to the right next step</h2>
+          <p>Make mentorship, project approval, and team participation clear from the first visit.</p>
+        </article>
+        <article class="summary-card comic-panel">
+          <p class="eyebrow comic-label">🔥 Faculties</p>
+          <h2>Engineering, computing, creative technology</h2>
+          <p>Designed for AI, robotics, IoT, software, data, and multimedia project collaboration.</p>
+        </article>
+      </div>
+
+      <div class="metric-row">
+        <article><strong>{{ mentors().length }}</strong><span>approved mentors</span></article>
+        <article><strong>{{ projects().length }}</strong><span>active projects</span></article>
+        <article><strong>3</strong><span>clear student steps</span></article>
+      </div>
+
+      <!-- About the University -->
+      <div class="about-university">
+        <div class="section-title">
+          <p class="eyebrow">About Multimedia University</p>
+          <h2>Malaysia's Leading Private University in STEM & Innovation</h2>
+          <p>Established in 1996, Multimedia University (MMU) is Malaysia's first private university and a pioneer in telecommunications and multimedia education. With campuses in Cyberjaya and Melaka, MMU continues to drive innovation and produce industry-ready graduates.</p>
+        </div>
+
+        <div class="about-grid">
+          <article class="about-card">
+            <div class="about-icon">🏛️</div>
+            <h3>Est. 1996</h3>
+            <p>Founded by Telekom Malaysia, MMU was the first university established in the Multimedia Super Corridor (MSC). Over 25 years of academic excellence in engineering, IT, and creative multimedia.</p>
+          </article>
+          <article class="about-card">
+            <div class="about-icon">🎓</div>
+            <h3>11 Faculties</h3>
+            <p>From Engineering & Technology to Computing & Informatics, Creative Multimedia, Business, and Law — MMU offers 100+ programs across undergraduate and postgraduate levels.</p>
+          </article>
+          <article class="about-card">
+            <div class="about-icon">🌐</div>
+            <h3>2 Campuses</h3>
+            <p>Cyberjaya campus focuses on engineering, IT, and media arts. Melaka campus specializes in business, law, and creative technology — together serving 20,000+ students.</p>
+          </article>
+          <article class="about-card">
+            <div class="about-icon">🏆</div>
+            <h3>Top Rankings</h3>
+            <p>Rated 5-Star by SETARA (Malaysian university rankings), QS-rated, and recognized globally for research excellence in AI, IoT, robotics, and telecommunications.</p>
+          </article>
+        </div>
+
+        <div class="campus-showcase">
+          <article class="campus-card">
+            <div class="campus-header cyberjaya">
+              <span class="campus-badge">Main Campus</span>
+              <h3>Cyberjaya</h3>
+            </div>
+            <div class="campus-body">
+              <p>Located in Malaysia's Silicon Valley, the Cyberjaya campus is home to the Faculty of Engineering & Technology, Faculty of Computing & Informatics, and the Faculty of Creative Multimedia.</p>
+              <div class="campus-tags">
+                <span>AI & Data Science</span>
+                <span>Robotics</span>
+                <span>IoT Engineering</span>
+                <span>Software Engineering</span>
+                <span>Cybersecurity</span>
+                <span>Film & Animation</span>
+              </div>
+            </div>
+          </article>
+          <article class="campus-card">
+            <div class="campus-header melaka">
+              <span class="campus-badge">Heritage Campus</span>
+              <h3>Melaka</h3>
+            </div>
+            <div class="campus-body">
+              <p>Set in the historic UNESCO World Heritage city, the Melaka campus offers programs in Engineering, Information Technology, Business, and Applied Communication.</p>
+              <div class="campus-tags">
+                <span>Electronics Engineering</span>
+                <span>Business & Marketing</span>
+                <span>Information Systems</span>
+                <span>Media Innovation</span>
+                <span>Law</span>
+                <span>Management</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="achievements-row">
+          <article class="achievement">
+            <strong>50,000+</strong>
+            <span>Alumni Worldwide</span>
+          </article>
+          <article class="achievement">
+            <strong>200+</strong>
+            <span>Industry Partners</span>
+          </article>
+          <article class="achievement">
+            <strong>5-Star</strong>
+            <span>SETARA Rating</span>
+          </article>
+          <article class="achievement">
+            <strong>100+</strong>
+            <span>Research Labs</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section *ngSwitchCase="'stem-portal'" class="page">
+      <div class="portal-hero">
+        <div class="section-title">
+          <p class="eyebrow">STEM Portal</p>
+          <h2>Discover mentors, explore projects & start building</h2>
+          <p>Browse, connect, and collaborate — all in one place. Sign in below to request mentors and join project teams.</p>
+        </div>
+
+        <!-- Student access -->
+        <div class="auth-actions" *ngIf="!student()">
+          <div>
+            <strong>Student Access</strong>
+            <small>Open your workspace to request mentors and projects.</small>
+          </div>
+          <div class="auth-action-buttons">
+            <button class="button secondary" type="button" (click)="openAuthModal('student-login')">Student Login</button>
+            <button class="button primary" type="button" (click)="openAuthModal('student-register')">Register</button>
+          </div>
+        </div>
+        <div class="auth-welcome" *ngIf="student()">
+          <div class="auth-welcome-left">
+            <div class="avatar small">{{ initials(student()?.student_name || 'S') }}</div>
+            <div>
+              <strong>{{ student()?.student_name || 'Student' }}</strong>
+              <small>{{ student()?.email }}</small>
+            </div>
+          </div>
+          <div class="auth-welcome-stats">
+            <span class="stat-pill">{{ student()?.pending ?? 0 }} pending</span>
+            <span class="stat-pill done">{{ acceptedMentorCount() }} mentors</span>
+            <span class="stat-pill">{{ student()?.accepted ?? 0 }} accepted</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="portal-tabs">
+        <button class="tab-btn" [class.active]="portalTab === 'mentors'" (click)="portalTab = 'mentors'">
+          <span class="tab-icon">👤</span> Mentors <span class="tab-count">{{ mentors().length }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="portalTab === 'projects'" (click)="portalTab = 'projects'">
+          <span class="tab-icon">🚀</span> Projects <span class="tab-count">{{ projects().length }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="portalTab === 'workspace'" (click)="portalTab = 'workspace'" *ngIf="student()">
+          <span class="tab-icon">📋</span> My Workspace
+        </button>
+      </div>
+
+      <!-- Mentors Tab -->
+      <div class="portal-content" *ngIf="portalTab === 'mentors'">
+        <div class="mentor-grid">
+          <article class="mentor-card-v2" *ngFor="let mentor of mentors()">
+            <div class="mentor-card-top">
+              <div class="avatar medium">
+                <img *ngIf="mentor.photo" [src]="mentor.photo" [alt]="mentor.name">
+                <span *ngIf="!mentor.photo">{{ initials(mentor.name) }}</span>
+              </div>
+              <div class="mentor-card-info">
+                <h4>{{ mentor.name }}</h4>
+                <p class="mentor-field">{{ mentor.field }}</p>
+                <p class="mentor-area" *ngIf="mentor.research_area">{{ mentor.research_area }}</p>
+              </div>
+            </div>
+            <p class="mentor-card-desc">{{ mentor.description }}</p>
+            <div class="mentor-card-footer">
+              <div class="mentor-card-stats">
+                <span>{{ mentor.pending_requests ?? 0 }} pending</span>
+                <span>{{ mentor.total_requests ?? 0 }} total</span>
+              </div>
+              <button class="button primary compact" (click)="quickMentorRequest(mentor)" *ngIf="student()">Connect</button>
+              <button class="button secondary compact" type="button" *ngIf="!student()" (click)="openAuthModal('student-login')">Sign in first</button>
+            </div>
+          </article>
+        </div>
+        <p class="empty-state" *ngIf="mentors().length === 0">No mentors available yet. Check back soon!</p>
+      </div>
+
+      <!-- Projects Tab -->
+      <div class="portal-content" *ngIf="portalTab === 'projects'">
+        <div class="project-grid">
+          <article class="project-card-v2" *ngFor="let project of projects()">
+            <div class="project-card-header">
+              <span class="project-category">{{ project.category || 'STEM' }}</span>
+              <span class="badge" [class.warning]="project.is_full">
+                {{ project.is_full ? 'Full' : (project.available ?? project.capacity ?? project.team_size ?? 0) + ' spots' }}
+              </span>
+            </div>
+            <h4>{{ project.title }}</h4>
+            <p class="project-mentor">{{ project.mentor_name || 'Mentor assigned during review' }}</p>
+            <p class="project-desc">{{ project.description }}</p>
+            <div class="project-card-footer">
+              <div class="team-size">
+                <span class="team-dot" *ngFor="let s of [].constructor(project.capacity || project.team_size || 3); let i = index"
+                      [class.filled]="i < ((project.capacity || project.team_size || 3) - (project.available ?? project.capacity ?? 0))">
+                </span>
+              </div>
+              <button class="button primary compact" (click)="quickProjectRequest(project)" *ngIf="student() && !project.is_full" [disabled]="acceptedMentorCount() === 0">
+                {{ acceptedMentorCount() > 0 ? 'Join Team' : 'Need mentor' }}
+              </button>
+            </div>
+          </article>
+        </div>
+        <p class="empty-state" *ngIf="projects().length === 0">No projects available yet. Propose one from the workspace!</p>
+      </div>
+
+      <!-- Workspace Tab (merged Student Portal) -->
+      <div class="portal-content" *ngIf="portalTab === 'workspace'">
+        <div class="workspace-layout" *ngIf="!student()">
+          <div class="auth-prompt-card centered">
+            <h3>Student Workspace</h3>
+            <p class="hint">Sign in or create an account to manage your requests.</p>
+            <div class="auth-action-buttons">
+              <button class="button primary" type="button" (click)="openAuthModal('student-login')">Student Login</button>
+              <button class="button secondary" type="button" (click)="openAuthModal('student-register')">Create Account</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="workspace-layout" *ngIf="student()">
+          <!-- Progress Steps -->
+          <div class="progress-track">
+            <div class="progress-step" [class.done]="student()">
+              <div class="progress-dot">1</div>
+              <div><strong>Profile ready</strong><small>{{ student()?.email }}</small></div>
+            </div>
+            <div class="progress-connector" [class.done]="acceptedMentorCount() > 0"></div>
+            <div class="progress-step" [class.done]="acceptedMentorCount() > 0">
+              <div class="progress-dot">2</div>
+              <div><strong>Mentor accepted</strong><small>{{ acceptedMentorCount() }} approved</small></div>
+            </div>
+            <div class="progress-connector" [class.done]="(student()?.accepted ?? 0) > acceptedMentorCount()"></div>
+            <div class="progress-step" [class.done]="(student()?.accepted ?? 0) > acceptedMentorCount()">
+              <div class="progress-dot">3</div>
+              <div><strong>Project active</strong><small>{{ student()?.accepted ?? 0 }} accepted</small></div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="workspace-grid">
+            <form class="form-panel" (ngSubmit)="sendMentorRequest()">
+              <h3>Request a Mentor</h3>
+              <label>Mentor
+                <select name="mentorRequestMentor" [(ngModel)]="mentorRequest.mentor_id" required>
+                  <option value="">Select mentor</option>
+                  <option *ngFor="let mentor of mentors()" [value]="mentor.id">{{ mentor.name }} / {{ mentor.field }}</option>
+                </select>
+              </label>
+              <label>Interest <input name="mentorInterest" [(ngModel)]="mentorRequest.interest" required placeholder="AI, IoT, robotics..."></label>
+              <label>Message <textarea name="mentorMessage" [(ngModel)]="mentorRequest.message" rows="2" placeholder="Brief intro..."></textarea></label>
+              <button class="button primary" type="submit">Send request</button>
+            </form>
+
+            <form class="form-panel" (ngSubmit)="sendProjectRequest()">
+              <h3>Join or Propose a Project</h3>
+              <p class="hint" *ngIf="acceptedMentorCount() === 0">You need an accepted mentor first.</p>
+              <label>Existing project
+                <select name="projectRequestProject" [(ngModel)]="projectRequest.project_id">
+                  <option value="">Propose a new idea</option>
+                  <option *ngFor="let project of projects()" [value]="project.id" [disabled]="project.is_full">{{ project.title }}</option>
+                </select>
+              </label>
+              <label>Project title <input name="projectTitle" [(ngModel)]="projectRequest.project_title" placeholder="Required for new ideas"></label>
+              <label>Approving mentor
+                <select name="projectMentor" [(ngModel)]="projectRequest.mentor_id" required>
+                  <option value="">Select mentor</option>
+                  <option *ngFor="let mentor of mentors()" [value]="mentor.id">{{ mentor.name }}</option>
+                </select>
+              </label>
+              <label>Role <input name="projectRole" [(ngModel)]="projectRequest.role" placeholder="Frontend, AI, hardware"></label>
+              <label>Skills <input name="projectSkills" [(ngModel)]="projectRequest.skills" placeholder="Python, Angular, sensors"></label>
+              <label>Short plan <textarea name="projectIntro" [(ngModel)]="projectRequest.intro" rows="2"></textarea></label>
+              <button class="button primary" type="submit" [disabled]="acceptedMentorCount() === 0">Submit</button>
+            </form>
+          </div>
+
+          <!-- Request History -->
+          <div class="request-board" *ngIf="activeRequests().length > 0">
+            <h3>Your Requests</h3>
+            <div class="request-grid">
+              <article class="request-card-v2" *ngFor="let request of activeRequests()">
+                <div class="request-card-top">
+                  <span class="request-type" [class.mentor]="request.request_type === 'mentor'">{{ request.request_type }}</span>
+                  <span class="request-status" [attr.data-status]="request.status">{{ request.status }}</span>
+                </div>
+                <h4>{{ request.project_title || request.mentor_name || 'Request' }}</h4>
+                <p>{{ request.message || request.intro || request.interest || 'No details added.' }}</p>
+                <button class="button secondary compact" type="button" (click)="withdrawRequest(request)" *ngIf="request.status === 'pending' || request.status === 'accepted'">Withdraw</button>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section *ngSwitchCase="'mentor-portal'" class="page">
+      <div class="section-title">
+        <p class="eyebrow">Mentor Portal</p>
+        <h2>Review students and manage project seats</h2>
+        <p>Mentors register here, wait for admin approval, then review requests and create projects.</p>
+      </div>
+
+      <div class="mentor-auth-card" *ngIf="!mentorSession()">
+        <div class="mentor-auth-card-header">
+          <div>
+            <p class="eyebrow">{{ mentorAuthMode === 'login' ? 'Mentor Login' : 'Mentor Registration' }}</p>
+            <h3>{{ mentorAuthMode === 'login' ? 'Open mentor workspace' : 'Submit mentor profile' }}</h3>
+            <p class="hint">{{ mentorAuthMode === 'login' ? 'Approved mentors can sign in with email and access code.' : 'New mentors can register here and wait for admin approval.' }}</p>
+          </div>
+        </div>
+
+        <form class="mentor-auth-form" *ngIf="mentorAuthMode === 'login'" (ngSubmit)="loginMentor()">
+          <div class="auth-form-grid mentor-login-grid">
+            <label>Email
+              <input name="mentorEmail" [(ngModel)]="mentorLogin.email" type="email" required autocomplete="email" placeholder="mentor@example.com">
+            </label>
+            <label>Access code
+              <input name="mentorCode" [(ngModel)]="mentorLogin.access_code" type="password" required autocomplete="current-password" placeholder="Access code">
+            </label>
+          </div>
+          <div class="mentor-form-actions">
+            <button class="button primary" type="submit">Open Mentor Workspace</button>
+            <button class="button secondary" type="button" (click)="mentorAuthMode = 'register'">Register</button>
+          </div>
+        </form>
+
+        <form class="mentor-auth-form" *ngIf="mentorAuthMode === 'register'" (ngSubmit)="registerMentor()">
+          <div class="auth-form-grid">
+            <label>Name
+              <input name="regName" [(ngModel)]="mentorRegistration.name" required autocomplete="name" placeholder="Dr. Aisha Rahman">
+            </label>
+            <label>Email
+              <input name="regEmail" [(ngModel)]="mentorRegistration.email" type="email" required autocomplete="email" placeholder="mentor@example.com">
+            </label>
+          </div>
+          <div class="auth-form-grid">
+            <label>Field
+              <input name="regField" [(ngModel)]="mentorRegistration.field" required placeholder="AI, Robotics, IoT">
+            </label>
+            <label>Access code
+              <input name="regCode" [(ngModel)]="mentorRegistration.access_code" required autocomplete="new-password" placeholder="Create access code">
+            </label>
+          </div>
+          <label>Research area
+            <input name="regResearch" [(ngModel)]="mentorRegistration.research_area" placeholder="Machine learning, smart systems">
+          </label>
+          <label>Description
+            <textarea name="regDescription" [(ngModel)]="mentorRegistration.description" rows="4" required placeholder="Briefly describe your expertise and mentorship focus."></textarea>
+          </label>
+          <div class="mentor-form-actions">
+            <button class="button primary" type="submit">Submit for Approval</button>
+            <button class="button secondary" type="button" (click)="mentorAuthMode = 'login'">Login</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="workspace-grid" *ngIf="mentorSession()">
+        <form class="form-panel" (ngSubmit)="createMentorProject()">
+          <h3>Create project</h3>
+          <label>Title <input name="newProjectTitle" [(ngModel)]="newProject.title" required></label>
+          <label>Category <input name="newProjectCategory" [(ngModel)]="newProject.category"></label>
+          <label>Team size <input name="newProjectSize" [(ngModel)]="newProject.team_size" type="number" min="1" max="5"></label>
+          <label>Description <textarea name="newProjectDescription" [(ngModel)]="newProject.description" rows="3"></textarea></label>
+          <button class="button primary" type="submit">Create project</button>
+        </form>
+
+        <div class="request-board">
+          <h3>Student requests</h3>
+          <article class="request-card" *ngFor="let request of mentorSession()?.requests">
+            <div>
+              <h4>{{ request.student_name }}</h4>
+              <p>{{ request.request_type }} / {{ request.status }} / {{ request.project_title || request.interest }}</p>
+            </div>
+            <p>{{ request.message || request.intro || 'No details added.' }}</p>
+            <div class="inline-actions" *ngIf="request.status === 'pending'">
+              <button class="button primary" type="button" (click)="decideRequest(request, 'accepted')">Accept</button>
+              <button class="button secondary" type="button" (click)="decideRequest(request, 'rejected')">Reject</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+
+    <section *ngSwitchCase="'admin-portal'" class="page">
+      <div class="section-title">
+        <p class="eyebrow">Admin Portal</p>
+        <h2>Manage mentors, students &amp; approvals</h2>
+        <p>Approve or reject mentor registrations, manage student accounts, and oversee the STEM portal.</p>
+      </div>
+
+      <!-- Admin Login -->
+      <div class="auth-prompt-card centered" *ngIf="!adminLoggedIn()">
+        <h3>Admin Access</h3>
+        <p class="hint">Open the admin dashboard with the site password.</p>
+        <button class="button primary" type="button" (click)="openAuthModal('admin-login')">Admin Login</button>
+      </div>
+
+      <!-- Admin Dashboard -->
+      <div *ngIf="adminLoggedIn()">
+        <div class="admin-header-bar">
+          <div class="admin-header-left">
+            <div class="avatar small admin-avatar">🛡</div>
+            <div>
+              <strong>Administrator</strong>
+              <small>Full access</small>
+            </div>
+          </div>
+          <button class="button secondary compact" type="button" (click)="logoutAdmin()">Logout</button>
+        </div>
+
+        <!-- Admin Stats -->
+        <div class="metric-row" style="margin-top:20px;">
+          <article><strong>{{ adminData()?.students?.length ?? 0 }}</strong><span>Students</span></article>
+          <article><strong>{{ adminData()?.pending?.length ?? 0 }}</strong><span>Pending mentors</span></article>
+          <article><strong>{{ adminData()?.approved?.length ?? 0 }}</strong><span>Approved mentors</span></article>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="portal-tabs">
+          <button class="tab-btn" [class.active]="adminTab === 'students'" (click)="adminTab = 'students'">
+            <span class="tab-icon">🎓</span> Students <span class="tab-count">{{ adminData()?.students?.length ?? 0 }}</span>
+          </button>
+          <button class="tab-btn" [class.active]="adminTab === 'pending'" (click)="adminTab = 'pending'">
+            <span class="tab-icon">⏳</span> Pending <span class="tab-count">{{ adminData()?.pending?.length ?? 0 }}</span>
+          </button>
+          <button class="tab-btn" [class.active]="adminTab === 'approved'" (click)="adminTab = 'approved'">
+            <span class="tab-icon">✅</span> Approved <span class="tab-count">{{ adminData()?.approved?.length ?? 0 }}</span>
+          </button>
+          <button class="tab-btn" [class.active]="adminTab === 'rejected'" (click)="adminTab = 'rejected'">
+            <span class="tab-icon">❌</span> Rejected <span class="tab-count">{{ adminData()?.rejected?.length ?? 0 }}</span>
+          </button>
+        </div>
+
+        <!-- Students Tab -->
+        <div class="portal-content" *ngIf="adminTab === 'students'">
+          <div class="admin-table-wrap" *ngIf="adminData()?.students?.length; else noStudents">
+            <table class="admin-table-v2">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Photo</th><th>Joined</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of adminData()?.students">
+                  <td>{{ s.name }}</td>
+                  <td>{{ s.email }}</td>
+                  <td><span class="badge" *ngIf="s.photo_url">Has photo</span><span class="admin-muted" *ngIf="!s.photo_url">—</span></td>
+                  <td>{{ s.created_at | date:'mediumDate' }}</td>
+                  <td><button class="button secondary compact" type="button" (click)="adminDeleteStudent(s.id)">Remove</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noStudents>
+            <p class="empty-state">No students registered yet.</p>
+          </ng-template>
+        </div>
+
+        <!-- Pending Mentors Tab -->
+        <div class="portal-content" *ngIf="adminTab === 'pending'">
+          <div class="mentor-grid" *ngIf="adminData()?.pending?.length; else noPending">
+            <article class="mentor-card-v2 admin-mentor-card" *ngFor="let m of adminData()?.pending">
+              <div class="mentor-card-top">
+                <div class="avatar medium">
+                  <img *ngIf="m.photo" [src]="m.photo" [alt]="m.name">
+                  <span *ngIf="!m.photo">{{ initials(m.name) }}</span>
+                </div>
+                <div class="mentor-card-info">
+                  <h4>{{ m.name }}</h4>
+                  <p class="mentor-field">{{ m.field }}</p>
+                  <p class="mentor-area" *ngIf="m.research_area">{{ m.research_area }}</p>
+                </div>
+              </div>
+              <p class="mentor-card-desc">{{ m.description }}</p>
+              <div class="admin-card-actions">
+                <button class="button primary compact" type="button" (click)="adminApproveMentor(m.id)">✓ Approve</button>
+                <button class="button secondary compact" type="button" (click)="adminRejectMentor(m.id)">✗ Reject</button>
+              </div>
+            </article>
+          </div>
+          <ng-template #noPending>
+            <p class="empty-state">No pending mentor registrations.</p>
+          </ng-template>
+        </div>
+
+        <!-- Approved Mentors Tab -->
+        <div class="portal-content" *ngIf="adminTab === 'approved'">
+          <div class="mentor-grid" *ngIf="adminData()?.approved?.length; else noApproved">
+            <article class="mentor-card-v2 admin-mentor-card" *ngFor="let m of adminData()?.approved">
+              <div class="mentor-card-top">
+                <div class="avatar medium">
+                  <img *ngIf="m.photo" [src]="m.photo" [alt]="m.name">
+                  <span *ngIf="!m.photo">{{ initials(m.name) }}</span>
+                </div>
+                <div class="mentor-card-info">
+                  <h4>{{ m.name }}</h4>
+                  <p class="mentor-field">{{ m.field }}</p>
+                  <p class="mentor-area" *ngIf="m.research_area">{{ m.research_area }}</p>
+                </div>
+              </div>
+              <p class="mentor-card-desc">{{ m.description }}</p>
+              <div class="admin-card-actions">
+                <span class="admin-status-badge approved">Active</span>
+                <button class="button secondary compact" type="button" (click)="adminDeleteMentor(m.id)">Remove</button>
+              </div>
+            </article>
+          </div>
+          <ng-template #noApproved>
+            <p class="empty-state">No approved mentors yet.</p>
+          </ng-template>
+        </div>
+
+        <!-- Rejected Mentors Tab -->
+        <div class="portal-content" *ngIf="adminTab === 'rejected'">
+          <div class="mentor-grid" *ngIf="adminData()?.rejected?.length; else noRejected">
+            <article class="mentor-card-v2 admin-mentor-card" *ngFor="let m of adminData()?.rejected">
+              <div class="mentor-card-top">
+                <div class="avatar medium">
+                  <img *ngIf="m.photo" [src]="m.photo" [alt]="m.name">
+                  <span *ngIf="!m.photo">{{ initials(m.name) }}</span>
+                </div>
+                <div class="mentor-card-info">
+                  <h4>{{ m.name }}</h4>
+                  <p class="mentor-field">{{ m.field }}</p>
+                </div>
+              </div>
+              <p class="mentor-card-desc">{{ m.description }}</p>
+              <div class="admin-card-actions">
+                <span class="admin-status-badge rejected">Rejected</span>
+                <button class="button secondary compact" type="button" (click)="adminDeleteMentor(m.id)">Remove</button>
+              </div>
+            </article>
+          </div>
+          <ng-template #noRejected>
+            <p class="empty-state">No rejected mentors.</p>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+
+  <router-outlet></router-outlet>
+
+  <div class="auth-modal-backdrop" *ngIf="authModal" (click)="closeAuthModal()">
+    <section class="auth-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <button class="auth-modal-close" type="button" aria-label="Close" (click)="closeAuthModal()">×</button>
+
+      <form class="auth-modal-form" *ngIf="authModal === 'student-login'" (ngSubmit)="loginStudent()">
+        <p class="eyebrow">Student Login</p>
+        <h2>Welcome back</h2>
+        <label>Email
+          <input name="studentLoginEmail" [(ngModel)]="studentLogin.email" type="email" required autocomplete="email" placeholder="student@example.com">
+        </label>
+        <label>Password
+          <input name="studentLoginPassword" [(ngModel)]="studentLogin.password" type="password" required autocomplete="current-password" placeholder="Password">
+        </label>
+        <button class="button primary" type="submit">Open Workspace</button>
+        <p class="auth-switch">New student? <button type="button" (click)="openAuthModal('student-register')">Create an account</button></p>
+      </form>
+
+      <form class="auth-modal-form" *ngIf="authModal === 'student-register'" (ngSubmit)="registerStudent()">
+        <p class="eyebrow">Student Registration</p>
+        <h2>Create your account</h2>
+        <label>Name
+          <input name="studentRegisterName" [(ngModel)]="studentLogin.student_name" required autocomplete="name" placeholder="Aisha Rahman">
+        </label>
+        <label>Email
+          <input name="studentRegisterEmail" [(ngModel)]="studentLogin.email" type="email" required autocomplete="email" placeholder="student@example.com">
+        </label>
+        <label>Password
+          <input name="studentRegisterPassword" [(ngModel)]="studentLogin.password" type="password" required autocomplete="new-password" placeholder="Create a password">
+        </label>
+        <button class="button primary" type="submit">Create Student Account</button>
+        <p class="auth-switch">Already registered? <button type="button" (click)="openAuthModal('student-login')">Sign in</button></p>
+      </form>
+
+      <form class="auth-modal-form" *ngIf="authModal === 'mentor-login'" (ngSubmit)="loginMentor()">
+        <p class="eyebrow">Mentor Login</p>
+        <h2>Open mentor workspace</h2>
+        <label>Email
+          <input name="mentorLoginEmail" [(ngModel)]="mentorLogin.email" type="email" required autocomplete="email" placeholder="mentor@example.com">
+        </label>
+        <label>Access code
+          <input name="mentorLoginCode" [(ngModel)]="mentorLogin.access_code" type="password" required autocomplete="current-password" placeholder="Access code">
+        </label>
+        <button class="button primary" type="submit">Open Mentor Workspace</button>
+        <p class="auth-switch">New mentor? <button type="button" (click)="openAuthModal('mentor-register')">Register profile</button></p>
+      </form>
+
+      <form class="auth-modal-form" *ngIf="authModal === 'mentor-register'" (ngSubmit)="registerMentor()">
+        <p class="eyebrow">Mentor Registration</p>
+        <h2>Submit mentor profile</h2>
+        <div class="auth-form-grid">
+          <label>Name
+            <input name="mentorRegisterName" [(ngModel)]="mentorRegistration.name" required autocomplete="name" placeholder="Dr. Aisha Rahman">
+          </label>
+          <label>Email
+            <input name="mentorRegisterEmail" [(ngModel)]="mentorRegistration.email" type="email" required autocomplete="email" placeholder="mentor@example.com">
+          </label>
+        </div>
+        <div class="auth-form-grid">
+          <label>Field
+            <input name="mentorRegisterField" [(ngModel)]="mentorRegistration.field" required placeholder="AI, Robotics, IoT">
+          </label>
+          <label>Access code
+            <input name="mentorRegisterCode" [(ngModel)]="mentorRegistration.access_code" required autocomplete="new-password" placeholder="Create access code">
+          </label>
+        </div>
+        <label>Research area
+          <input name="mentorRegisterResearch" [(ngModel)]="mentorRegistration.research_area" placeholder="Machine learning, smart systems">
+        </label>
+        <label>Description
+          <textarea name="mentorRegisterDescription" [(ngModel)]="mentorRegistration.description" rows="4" required placeholder="Briefly describe your expertise and mentorship focus."></textarea>
+        </label>
+        <button class="button primary" type="submit">Submit for Approval</button>
+        <p class="auth-switch">Already approved? <button type="button" (click)="openAuthModal('mentor-login')">Sign in</button></p>
+      </form>
+
+      <form class="auth-modal-form" *ngIf="authModal === 'admin-login'" (ngSubmit)="loginAdmin()">
+        <p class="eyebrow">Admin Login</p>
+        <h2>Admin dashboard</h2>
+        <label>Password
+          <input name="adminLoginPassword" [(ngModel)]="adminPassword" type="password" required autocomplete="current-password" placeholder="Admin password">
+        </label>
+        <button class="button primary" type="submit">Authenticate</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Floating Chatbot Widget (Facebook Messenger style) -->
+  <button class="fab-chat-trigger" type="button" *ngIf="!chatOpen"
+       aria-label="Open STEM Bot chat"
+       [class.fab-chat-trigger-dragging]="launcherDragging"
+       [style.left.px]="chatLauncherPos.x" [style.top.px]="chatLauncherPos.y"
+       (pointerdown)="startLauncherDrag($event)"
+       (click)="openChatFromLauncher($event)">
+    <span class="fab-icon">💬</span>
+    <span class="fab-pulse"></span>
+  </button>
+
+  <div class="fab-chat-window" *ngIf="chatOpen"
+       [class.fab-chat-dragging]="chatDragging"
+       [style.left.px]="chatPos.x" [style.top.px]="chatPos.y">
+    <div class="fab-chat-header" (pointerdown)="startDrag($event)">
+      <div class="fab-chat-header-left">
+        <div class="fab-chat-avatar">🤖</div>
+        <div>
+          <strong>STEM Bot</strong>
+          <small>Online • Ask anything</small>
+        </div>
+      </div>
+      <button class="fab-chat-close" type="button" (click)="chatOpen = false">✕</button>
+    </div>
+    <div class="fab-chat-body">
+      <p *ngFor="let message of chatMessages()" [class.fab-user-msg]="message.from === 'student'">
+        <strong>{{ message.from === 'student' ? 'You' : '🤖 STEM Bot' }}</strong>
+        {{ message.text }}
+      </p>
+      <p class="fab-thinking" *ngIf="chatBusy()">
+        <span class="dot-flashing"></span> STEM Bot is thinking…
+      </p>
+    </div>
+    <form class="fab-chat-input" (ngSubmit)="askChatbot()">
+      <input name="chatInput" [(ngModel)]="chatInput" placeholder="Ask about mentors, projects, AI…" autocomplete="off">
+      <button class="fab-send-btn" type="submit">➤</button>
+    </form>
+  </div>
+
+</main>
